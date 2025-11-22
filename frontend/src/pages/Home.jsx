@@ -4,6 +4,14 @@ import { ShoppingCartOutlined, EyeOutlined, LeftOutlined, RightOutlined, FilterO
 import { useNavigate, useSearchParams } from 'react-router-dom'; // Import thêm useSearchParams
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
+import { FloatButton } from 'antd';
+import { 
+    CustomerServiceOutlined, 
+    PhoneOutlined, 
+    FacebookOutlined, 
+    MessageOutlined, 
+    VerticalAlignTopOutlined 
+} from '@ant-design/icons';
 
 const { Meta } = Card;
 const { Title, Paragraph } = Typography;
@@ -230,6 +238,39 @@ const Home = () => {
                     )}
                 </Col>
             </Row>
+            {/* --- NÚT LIÊN HỆ NỔI (FLOATING ACTION BUTTON) --- */}
+            <FloatButton.Group
+                trigger="click" // Bấm vào để xòe ra (Toggle)
+                type="primary" // Màu xanh chủ đạo
+                style={{ right: 24, bottom: 24 }} // Vị trí góc phải dưới
+                icon={<CustomerServiceOutlined />} // Icon mặc định (Tai nghe CSKH)
+                tooltip={<div>Cần hỗ trợ?</div>}
+            >
+                {/* 1. Nút gọi điện */}
+                <FloatButton 
+                    icon={<PhoneOutlined />} 
+                    tooltip={<div>Hotline: 0348.773.921</div>}
+                    onClick={() => window.open('tel:0348773921')} // Gọi điện ngay
+                />
+
+                {/* 2. Nút Zalo (Dùng tạm icon Message vì AntD ko có icon Zalo) */}
+                <FloatButton 
+                    icon={<MessageOutlined />} 
+                    tooltip={<div>Chat Zalo</div>}
+                    onClick={() => window.open('https://zalo.me/0348773921', '_blank')} 
+                />
+
+                {/* 3. Nút Facebook */}
+                <FloatButton 
+                    icon={<FacebookOutlined />} 
+                    tooltip={<div>Fanpage Facebook</div>}
+                    onClick={() => window.open('https://www.facebook.com/your-page', '_blank')} 
+                />
+                
+                {/* 4. Nút cuộn lên đầu trang (Tiện ích thêm) */}
+                <FloatButton.BackTop visibilityHeight={0} icon={<VerticalAlignTopOutlined />} />
+            </FloatButton.Group>
+            
         </div>
     );
 };

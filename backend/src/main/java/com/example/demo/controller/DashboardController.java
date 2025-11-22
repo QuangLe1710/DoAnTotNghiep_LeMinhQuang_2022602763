@@ -1,5 +1,6 @@
 package com.example.demo.controller;
 
+import com.example.demo.repository.OrderRepository;
 import com.example.demo.repository.ProductRepository;
 import com.example.demo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,18 +24,24 @@ public class DashboardController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     @GetMapping("/stats")
     public ResponseEntity<?> getStats() {
         Map<String, Object> stats = new HashMap<>();
 
-        // Đếm số lượng thực tế trong DB
+        // 1. Tổng sản phẩm
         stats.put("totalProducts", productRepository.count());
+
+        // 2. Tổng người dùng (Trừ Admin ra nếu muốn, ở đây đếm tất)
         stats.put("totalUsers", userRepository.count());
 
-        // Giả lập số liệu Đơn hàng & Doanh thu (Vì chưa làm module Order)
-        // Để demo cho đẹp, sau này làm xong Order thì thay bằng lệnh count() thật
-        stats.put("totalOrders", 15);
-        stats.put("totalRevenue", 350000000);
+        // 3. Tổng đơn hàng (SỐ LIỆU THẬT)
+        stats.put("totalOrders", orderRepository.count());
+
+        // 4. Tổng doanh thu (SỐ LIỆU THẬT)
+        stats.put("totalRevenue", orderRepository.sumTotalRevenue());
 
         return ResponseEntity.ok(stats);
     }

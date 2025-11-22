@@ -85,4 +85,16 @@ public class OrderController {
             return ResponseEntity.badRequest().body("Không thể hủy đơn hàng khi đã được duyệt hoặc đang giao!");
         }
     }
+
+    // API Đếm số đơn đang chờ duyệt (Dùng để thông báo)
+    @GetMapping("/count-pending")
+    public ResponseEntity<?> getPendingCount() {
+        return ResponseEntity.ok(orderRepository.countByStatus("PENDING"));
+    }
+
+    // API lấy danh sách các đơn đang chờ duyệt (Dùng cho Notification Dropdown)
+    @GetMapping("/pending-orders")
+    public ResponseEntity<?> getPendingOrders() {
+        return ResponseEntity.ok(orderRepository.findByStatusOrderByIdDesc("PENDING"));
+    }
 }
