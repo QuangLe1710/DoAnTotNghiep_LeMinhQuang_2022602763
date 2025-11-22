@@ -12,15 +12,20 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-@RequiredArgsConstructor
+//@RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = "*") // Cho phép ReactJS gọi
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtils jwtUtils;
+    @Autowired
+    private UserRepository userRepository; // Xóa final nếu có
+
+    @Autowired
+    private PasswordEncoder passwordEncoder; // Xóa final nếu có
+
+    @Autowired
+    private JwtUtils jwtUtils;
 
     // 1. ĐĂNG KÝ
     @PostMapping("/register")
