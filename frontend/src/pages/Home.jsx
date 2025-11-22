@@ -3,6 +3,7 @@ import { Card, Col, Row, Typography, Spin, Button, Rate, message, Tag, Carousel,
 import { ShoppingCartOutlined, EyeOutlined, LeftOutlined, RightOutlined, FilterOutlined } from '@ant-design/icons';
 import { useNavigate, useSearchParams } from 'react-router-dom'; // Import thêm useSearchParams
 import api from '../services/api';
+import { useCart } from '../context/CartContext';
 
 const { Meta } = Card;
 const { Title, Paragraph } = Typography;
@@ -11,6 +12,7 @@ const Home = () => {
     const [products, setProducts] = useState([]); // Dữ liệu gốc từ API
     const [filteredProducts, setFilteredProducts] = useState([]); // Dữ liệu đã lọc để hiển thị
     const [loading, setLoading] = useState(true);
+    const { addToCart } = useCart();
     
     const navigate = useNavigate();
     const [searchParams] = useSearchParams(); // Hook lấy tham số từ URL
@@ -183,7 +185,14 @@ const Home = () => {
                                                 <Button type="text" icon={<EyeOutlined />} onClick={() => navigate(`/product/${product.id}`)}>
                                                     Chi tiết
                                                 </Button>,
-                                                <Button type="primary" icon={<ShoppingCartOutlined />} onClick={() => message.success('Đã thêm vào giỏ!')}>
+                                                <Button 
+                                                    type="primary" 
+                                                    icon={<ShoppingCartOutlined />} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation(); // Ngăn việc click nút này mà nó nhảy sang trang detail
+                                                        addToCart(product);
+                                                    }}
+                                                >
                                                     Thêm
                                                 </Button>
                                             ]}

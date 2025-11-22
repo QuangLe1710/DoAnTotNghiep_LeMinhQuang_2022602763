@@ -22,6 +22,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/**").permitAll() // Mở cửa cho Đăng ký/Đăng nhập
                         .requestMatchers("/api/products/**").permitAll() // Mở cửa cho xem sản phẩm (để làm Front cho dễ)
+                        .requestMatchers("/api/orders/**").permitAll()
                         .anyRequest().permitAll() // Tạm thời mở hết để test (Sau này đóng sau)
                 );
         return http.build();

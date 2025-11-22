@@ -1,13 +1,15 @@
 import React from 'react';
 import { Layout, Input, Badge, Button, Avatar, Dropdown, Space } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined } from '@ant-design/icons';
+import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet, Link } from 'react-router-dom';
+import { useCart } from '../context/CartContext'; // <--- 1. IMPORT CART CONTEXT
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
 
 const ClientLayout = () => {
     const navigate = useNavigate();
+    const { cartItems } = useCart(); // <--- 2. LẤY CART ITEMS TỪ CONTEXT
     
     const userString = localStorage.getItem('user');
     const user = userString ? JSON.parse(userString) : null;
@@ -18,16 +20,16 @@ const ClientLayout = () => {
         navigate('/login');
     };
 
-    // --- HÀM XỬ LÝ TÌM KIẾM (MỚI) ---
     const onSearch = (value) => {
         if (value.trim()) {
-            // Chuyển hướng về trang chủ kèm tham số ?search=...
             navigate(`/?search=${encodeURIComponent(value.trim())}`);
         } else {
-            // Nếu xóa trắng thì về trang chủ gốc
             navigate('/');
         }
     };
+
+    // Tính tổng số lượng sản phẩm (Ví dụ: mua 2 cái iPhone thì hiện số 2)
+    const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
     const userMenu = {
         items: [
@@ -37,17 +39,22 @@ const ClientLayout = () => {
                 icon: <DashboardOutlined />
             }] : []),
             {
+                key: 'history',
+                label: <Link to="/history">Lịch sử đơn hàng</Link>, // <--- THÊM MỤC NÀY
+                icon: <ShoppingOutlined /> // Nhớ import icon nếu cần
+            },
+            {
                 key: 'logout',
                 label: 'Đăng xuất',
                 icon: <LogoutOutlined />,
                 onClick: handleLogout
-            }
+            },
         ]
     };
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            <Header style={{ position: 'sticky', top: 0, zIndex: 100, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', boxShadow: '0 2px 8px #f0f1f2', padding: '0 50px' }}>
+            <Header style={{ /* ...giữ nguyên style cũ... */ position: 'sticky', top: 0, zIndex: 100, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', boxShadow: '0 2px 8px #f0f1f2', padding: '0 50px' }}>
                 
                 <div className="logo" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate('/')}>
                     <LaptopOutlined style={{ fontSize: '32px', color: '#1890ff', marginRight: 10 }} />
@@ -60,13 +67,19 @@ const ClientLayout = () => {
                         allowClear 
                         enterButton="Tìm kiếm" 
                         size="large" 
-                        onSearch={onSearch} // <--- GẮN HÀM TÌM KIẾM VÀO ĐÂY
+                        onSearch={onSearch}
                     />
                 </div>
 
                 <Space size="large">
-                    <Badge count={0} showZero>
-                        <Button shape="circle" icon={<ShoppingCartOutlined />} size="large" />
+                    {/* 3. SỬA BADGE: Thay số 0 cứng bằng biến cartCount */}
+                    <Badge count={cartCount} showZero>
+                        <Button 
+                            shape="circle" 
+                            icon={<ShoppingCartOutlined />} 
+                            size="large" 
+                            onClick={() => navigate('/cart')} // Thêm sự kiện bấm vào icon thì chuyển sang trang giỏ hàng
+                        />
                     </Badge>
 
                     {user ? (

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Typography, Button, Rate, Spin, message, Descriptions, Image, Tag } from 'antd';
 import { ShoppingCartOutlined, ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import api from '../services/api';
+import { useCart } from '../context/CartContext';
 
 const { Title, Paragraph } = Typography;
 
@@ -11,6 +12,7 @@ const ProductDetail = () => {
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { addToCart } = useCart();
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -72,7 +74,13 @@ const ProductDetail = () => {
                         </Descriptions>
 
                         <div style={{ display: 'flex', gap: 10, marginTop: 30 }}>
-                            <Button type="primary" size="large" icon={<ShoppingCartOutlined />} style={{ height: 50, width: 200 }}>
+                            <Button 
+                                type="primary" 
+                                size="large" 
+                                icon={<ShoppingCartOutlined />} 
+                                style={{ height: 50, width: 200 }}
+                                onClick={() => addToCart(product)} // <--- Sửa dòng này (truyền object product vào)
+                            >
                                 THÊM VÀO GIỎ
                             </Button>
                             <Button size="large" type="primary" danger style={{ height: 50, width: 200 }}>
