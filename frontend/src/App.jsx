@@ -2,37 +2,46 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import AdminLayout from './components/AdminLayout';
+import AdminProduct from './pages/AdminProduct';
+import Dashboard from './pages/Dashboard';
+import ClientLayout from './components/ClientLayout';
+import Home from './pages/Home';
+import ProductDetail from './pages/ProductDetail';
 
-// Trang Home tạm thời (Để test sau khi login thành công)
-const Home = () => {
-    const user = JSON.parse(localStorage.getItem('user'));
-    
-    const handleLogout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-    };
-
-    return (
-        <div style={{ textAlign: 'center', marginTop: 50 }}>
-            <h1>Chào mừng, {user ? user.username : 'Khách'}!</h1>
-            {user && <p>Chức vụ: {user.role}</p>}
-            <button onClick={handleLogout} style={{ padding: '10px 20px', cursor: 'pointer' }}>
-                Đăng Xuất
-            </button>
-        </div>
-    );
+const PrivateRoute = ({ children }) => {
+    const token = localStorage.getItem('token');
+    const userString = localStorage.getItem('user');
+    const user = userString ? JSON.parse(userString) : null;
+    if (!token || !user) return <Navigate to="/login" />;
+    if (user.role !== 'ADMIN') {
+        alert("Bạn không có quyền truy cập trang Admin!");
+        return <Navigate to="/" />;
+    }
+    return children;
 };
 
 function App() {
   return (
     <Router>
       <Routes>
+        {/* --- KHU VỰC KHÁCH HÀNG --- */}
+        <Route path="/" element={<ClientLayout />}>
+            <Route index element={<Home />} />
+            <Route path="/product/:id" element={<ProductDetail />} />
+        </Route>
+
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/" element={<Home />} />
-        {/* Nếu gõ linh tinh thì tự về login */}
-        <Route path="*" element={<Navigate to="/login" />} />
+
+        {/* --- KHU VỰC ADMIN --- */}
+        <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
+            <Route index element={<Navigate to="dashboard" />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="products" element={<AdminProduct />} />
+        </Route>
+
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

@@ -1,10 +1,10 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8080/api', // Trỏ đúng về Backend của bạn
+    baseURL: 'http://localhost:8080/api', // Link Backend Spring Boot
 });
 
-// Tự động thêm Token vào Header cho các request sau này (để mua hàng, xem lịch sử...)
+// Tự động thêm Token vào Header nếu có
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('token');
