@@ -1,6 +1,6 @@
 import React from 'react';
-import { Layout, Input, Badge, Button, Avatar, Dropdown, Space } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined } from '@ant-design/icons';
+import { Layout, Input, Badge, Button, Avatar, Dropdown, Space, FloatButton } from 'antd';
+import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, CustomerServiceOutlined, PhoneOutlined, FacebookOutlined, MessageOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext'; // <--- 1. IMPORT CART CONTEXT
 
@@ -111,6 +111,39 @@ const ClientLayout = () => {
                 </div>
                 MyLap ©2025 Created by Le Minh Quang - Đồ án tốt nghiệp Công nghệ thông tin
             </Footer>
+
+            {/* --- NÚT LIÊN HỆ NỔI (FLOATING ACTION BUTTON) --- */}
+            <FloatButton.Group
+                trigger="click" // Bấm vào để xòe ra (Toggle)
+                type="primary" // Màu xanh chủ đạo
+                style={{ right: 24, bottom: 24 }} // Vị trí góc phải dưới
+                icon={<CustomerServiceOutlined />} // Icon mặc định (Tai nghe CSKH)
+                tooltip={<div>Cần hỗ trợ?</div>}
+            >
+                {/* 1. Nút gọi điện */}
+                <FloatButton 
+                    icon={<PhoneOutlined />} 
+                    tooltip={<div>Hotline: 0348.773.921</div>}
+                    onClick={() => window.open('tel:0348773921')} // Gọi điện ngay
+                />
+
+                {/* 2. Nút Zalo (Dùng tạm icon Message vì AntD ko có icon Zalo) */}
+                <FloatButton 
+                    icon={<MessageOutlined />} 
+                    tooltip={<div>Chat Zalo</div>}
+                    onClick={() => window.open('https://zalo.me/0348773921', '_blank')} 
+                />
+
+                {/* 3. Nút Facebook */}
+                <FloatButton 
+                    icon={<FacebookOutlined />} 
+                    tooltip={<div>Fanpage Facebook</div>}
+                    onClick={() => window.open('https://www.facebook.com/your-page', '_blank')} 
+                />
+                
+                {/* 4. Nút cuộn lên đầu trang (Tiện ích thêm) */}
+                <FloatButton.BackTop visibilityHeight={0} icon={<VerticalAlignTopOutlined />} />
+            </FloatButton.Group>
         </Layout>
     );
 };
