@@ -3,6 +3,9 @@ import { Layout, Input, Badge, Button, Avatar, Dropdown, Space, FloatButton } fr
 import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, CustomerServiceOutlined, PhoneOutlined, FacebookOutlined, MessageOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext'; // <--- 1. IMPORT CART CONTEXT
+import { useCompare } from '../context/CompareContext'; // Import context
+import CompareModal from './CompareModal'; // Import Modal vừa tạo
+import { DiffOutlined } from '@ant-design/icons'; // Icon so sánh
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
@@ -10,6 +13,7 @@ const { Search } = Input;
 const ClientLayout = () => {
     const navigate = useNavigate();
     const { cartItems } = useCart(); // <--- 2. LẤY CART ITEMS TỪ CONTEXT
+    const { openCompareModal, compareList } = useCompare(); // Lấy hàm mở modal
     
     const userString = localStorage.getItem('user');
     const user = userString ? JSON.parse(userString) : null;
@@ -112,6 +116,8 @@ const ClientLayout = () => {
                 MyLap ©2025 Created by Le Minh Quang - Đồ án tốt nghiệp Công nghệ thông tin
             </Footer>
 
+            <CompareModal />
+
             {/* --- NÚT LIÊN HỆ NỔI (FLOATING ACTION BUTTON) --- */}
             <FloatButton.Group
                 trigger="click" // Bấm vào để xòe ra (Toggle)
@@ -139,6 +145,14 @@ const ClientLayout = () => {
                     icon={<FacebookOutlined />} 
                     tooltip={<div>Fanpage Facebook</div>}
                     onClick={() => window.open('https://www.facebook.com/your-page', '_blank')} 
+                />
+
+                {/* --- [THÊM NÚT SO SÁNH] --- */}
+                <FloatButton 
+                    icon={<DiffOutlined />} 
+                    badge={{ count: compareList.length, color: 'red' }} // Hiện số lượng đang so sánh
+                    tooltip={<div>So sánh sản phẩm</div>}
+                    onClick={openCompareModal}
                 />
                 
                 {/* 4. Nút cuộn lên đầu trang (Tiện ích thêm) */}

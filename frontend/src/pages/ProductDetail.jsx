@@ -4,6 +4,8 @@ import { Row, Col, Card, Typography, Button, Rate, Spin, message, Descriptions, 
 import { ShoppingCartOutlined, ArrowLeftOutlined, CheckCircleOutlined, RocketOutlined } from '@ant-design/icons'; // Import thêm RocketOutlined cho đẹp
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
+import { useCompare } from '../context/CompareContext'; // Import context
+import { DiffOutlined } from '@ant-design/icons';
 
 const { Title, Paragraph } = Typography;
 
@@ -13,6 +15,7 @@ const ProductDetail = () => {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const { addToCart } = useCart();
+    const { addToCompare } = useCompare(); // Lấy hàm add
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -102,6 +105,15 @@ const ProductDetail = () => {
                             >
                                 MUA NGAY
                             </Button>
+
+                            {/* --- [NÚT MỚI] THÊM VÀO SO SÁNH --- */}
+                            <Button 
+                                size="large" 
+                                icon={<DiffOutlined />} 
+                                style={{ height: 50 }}
+                                onClick={() => addToCompare(product)}
+                                title="So sánh sản phẩm này"
+                            />
                         </div>
 
                         <div style={{ marginTop: 20, color: '#52c41a' }}>
