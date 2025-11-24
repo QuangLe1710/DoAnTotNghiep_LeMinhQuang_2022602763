@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Row, Col, Card, Typography, Button, Rate, Spin, message, Descriptions, Image, Tag } from 'antd';
-import { ShoppingCartOutlined, ArrowLeftOutlined, CheckCircleOutlined } from '@ant-design/icons';
+import { ShoppingCartOutlined, ArrowLeftOutlined, CheckCircleOutlined, RocketOutlined } from '@ant-design/icons'; // Import thêm RocketOutlined cho đẹp
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
 
 const { Title, Paragraph } = Typography;
 
 const ProductDetail = () => {
-    const { id } = useParams(); // Lấy ID từ URL
+    const { id } = useParams();
     const navigate = useNavigate();
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -21,13 +21,23 @@ const ProductDetail = () => {
                 setProduct(response.data);
             } catch (error) {
                 message.error("Không tìm thấy sản phẩm!");
-                navigate('/'); // Nếu lỗi thì quay về trang chủ
+                navigate('/');
             } finally {
                 setLoading(false);
             }
         };
         fetchProduct();
     }, [id, navigate]);
+
+    // --- [HÀM MỚI] XỬ LÝ MUA NGAY ---
+    const handleBuyNow = () => {
+        if (product) {
+            // 1. Thêm vào giỏ hàng
+            addToCart(product); 
+            // 2. Chuyển hướng thẳng đến trang thanh toán
+            navigate('/checkout'); 
+        }
+    };
 
     if (loading) return <div style={{ textAlign: 'center', marginTop: 100 }}><Spin size="large" /></div>;
     if (!product) return null;
@@ -40,14 +50,12 @@ const ProductDetail = () => {
 
             <Card bordered={false} style={{ borderRadius: 8 }}>
                 <Row gutter={[32, 32]}>
-                    {/* Cột Trái: Hình ảnh */}
                     <Col xs={24} md={10}>
                         <div style={{ border: '1px solid #f0f0f0', padding: 20, borderRadius: 8, textAlign: 'center' }}>
                             <Image src={product.image} alt={product.name} />
                         </div>
                     </Col>
 
-                    {/* Cột Phải: Thông tin */}
                     <Col xs={24} md={14}>
                         <Tag color="blue">{product.brand}</Tag>
                         <Title level={2} style={{ marginTop: 5 }}>{product.name}</Title>
@@ -65,7 +73,6 @@ const ProductDetail = () => {
                             {product.description || "Sản phẩm chính hãng, bảo hành 12 tháng."}
                         </Paragraph>
 
-                        {/* Bảng thông số kỹ thuật */}
                         <Descriptions title="Thông số kỹ thuật" bordered size="small" column={1} style={{ marginBottom: 20 }}>
                             <Descriptions.Item label="CPU">{product.cpu}</Descriptions.Item>
                             <Descriptions.Item label="RAM">{product.ram}</Descriptions.Item>
@@ -79,11 +86,20 @@ const ProductDetail = () => {
                                 size="large" 
                                 icon={<ShoppingCartOutlined />} 
                                 style={{ height: 50, width: 200 }}
-                                onClick={() => addToCart(product)} // <--- Sửa dòng này (truyền object product vào)
+                                onClick={() => addToCart(product)}
                             >
                                 THÊM VÀO GIỎ
                             </Button>
-                            <Button size="large" type="primary" danger style={{ height: 50, width: 200 }}>
+
+                            {/* --- [CẬP NHẬT] NÚT MUA NGAY --- */}
+                            <Button 
+                                size="large" 
+                                type="primary" 
+                                danger 
+                                icon={<RocketOutlined />} // Thêm icon tên lửa cho sinh động
+                                style={{ height: 50, width: 200, background: 'linear-gradient(90deg, #ff4d4f 0%, #cf1322 100%)', border: 'none' }}
+                                onClick={handleBuyNow} // Gọi hàm xử lý
+                            >
                                 MUA NGAY
                             </Button>
                         </div>

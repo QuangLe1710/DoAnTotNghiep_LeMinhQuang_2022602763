@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer; // Import mới
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -12,6 +13,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration; // Import mới
+import org.springframework.web.cors.CorsConfigurationSource; // Import mới
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource; // Import mới
+
+import java.util.List; // Import mới
 
 @Configuration
 public class SecurityConfig {
@@ -32,35 +38,54 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable()) // Tắt CSRF
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Không dùng Session, chỉ dùng Token
+                // 1. [QUAN TRỌNG] Kích hoạt CORS trong Security
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // 1. PUBLIC (Ai cũng vào được)
-                        .requestMatchers("/api/auth/**").permitAll() // Đăng nhập/Đăng ký
-                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll() // Xem sản phẩm (GET) thì OK
+                        // 2. PUBLIC API
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/{id}").permitAll()
 
-                        // 2. ADMIN ONLY (Chỉ Admin mới được làm)
-                        .requestMatchers("/api/dashboard/**").hasAuthority("ADMIN") // Xem thống kê
-                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAuthority("ADMIN") // Thêm sản phẩm
-                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAuthority("ADMIN") // Sửa sản phẩm
-                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAuthority("ADMIN") // Xóa sản phẩm
-                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasAuthority("ADMIN") // Duyệt đơn hàng
-                        .requestMatchers("/api/orders").hasAuthority("ADMIN") // Xem tất cả đơn hàng (cho AdminOrder page)
-                        .requestMatchers("/api/orders/pending-orders").hasAuthority("ADMIN") // Thông báo admin
+                        // Cho phép API thanh toán VNPay (quan trọng khi redirect)
+                        .requestMatchers("/api/payment/**").permitAll()
+
+                        // 3. ADMIN ONLY
+                        .requestMatchers("/api/dashboard/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/products/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAuthority("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/status").hasAuthority("ADMIN")
+                        .requestMatchers("/api/orders").hasAuthority("ADMIN")
+                        .requestMatchers("/api/orders/pending-orders").hasAuthority("ADMIN")
                         .requestMatchers("/api/orders/count-pending").hasAuthority("ADMIN")
 
-                        // 3. USER & ADMIN (Đã đăng nhập là được)
-                        .requestMatchers("/api/orders/place").authenticated() // Đặt hàng
-                        .requestMatchers("/api/orders/my-orders/**").authenticated() // Xem lịch sử đơn
-                        .requestMatchers("/api/orders/*/cancel").authenticated() // Hủy đơn
+                        // 4. USER & ADMIN
+                        .requestMatchers("/api/orders/place").authenticated()
+                        .requestMatchers("/api/orders/my-orders/**").authenticated()
+                        .requestMatchers("/api/orders/*/cancel").authenticated()
 
-                        // 4. CÁC API KHÁC -> Yêu cầu đăng nhập
                         .anyRequest().authenticated()
                 )
-                // Thêm bộ lọc JWT vào trước bộ lọc Username/Password mặc định
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // --- [HÀM MỚI] Cấu hình cho phép Frontend gọi API ---
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        // Cho phép mọi nguồn (hoặc bạn có thể chỉ định "http://localhost:5173")
+        configuration.setAllowedOrigins(List.of("*"));
+        // Cho phép mọi method (GET, POST, PUT, DELETE...)
+        configuration.setAllowedMethods(List.of("*"));
+        // Cho phép mọi header (Authorization, Content-Type...)
+        configuration.setAllowedHeaders(List.of("*"));
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }

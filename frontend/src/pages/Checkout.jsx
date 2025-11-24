@@ -70,18 +70,50 @@ const Checkout = () => {
                     </Card>
                 </Col>
                 <Col span={12}>
-                    <Card title="Tóm tắt đơn hàng">
+                    <Card title="Tóm tắt đơn hàng" bordered={false} style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
                         {cartItems.map(item => (
-                            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, borderBottom: '1px solid #eee', paddingBottom: 10 }}>
-                                <div>
-                                    <strong>{item.name}</strong> <br/>
-                                    <small>x{item.quantity}</small>
+                            <div key={item.id} style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'space-between', 
+                                marginBottom: 15, 
+                                borderBottom: '1px solid #f0f0f0', 
+                                paddingBottom: 15 
+                            }}>
+                                {/* Bên trái: Ảnh + Tên + Số lượng */}
+                                <div style={{ display: 'flex', alignItems: 'center' }}>
+                                    <img 
+                                        src={item.image} 
+                                        alt={item.name} 
+                                        style={{ 
+                                            width: 60, 
+                                            height: 60, 
+                                            objectFit: 'cover', 
+                                            borderRadius: 6, 
+                                            border: '1px solid #eee',
+                                            marginRight: 15 
+                                        }} 
+                                    />
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: 15, marginBottom: 4 }}>{item.name}</div>
+                                        <div style={{ fontSize: 13, color: '#888' }}>
+                                            Đơn giá: {item.price?.toLocaleString()} đ <span style={{ margin: '0 5px' }}>x</span> {item.quantity}
+                                        </div>
+                                    </div>
                                 </div>
-                                <div>{(item.price * item.quantity).toLocaleString()} đ</div>
+
+                                {/* Bên phải: Thành tiền */}
+                                <div style={{ fontWeight: 'bold', color: '#333' }}>
+                                    {(item.price * item.quantity).toLocaleString()} đ
+                                </div>
                             </div>
                         ))}
-                        <div style={{ marginTop: 20, textAlign: 'right', fontSize: 18, fontWeight: 'bold', color: '#cf1322' }}>
-                            Tổng: {totalAmount.toLocaleString()} đ
+
+                        <div style={{ marginTop: 20, paddingTop: 15, borderTop: '2px dashed #e8e8e8', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: 16, color: '#666' }}>Tổng thanh toán:</span>
+                            <span style={{ fontSize: 24, fontWeight: 'bold', color: '#cf1322' }}>
+                                {totalAmount.toLocaleString()} đ
+                            </span>
                         </div>
                     </Card>
                 </Col>
