@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Col, Row, Statistic, Typography, Select, Space } from 'antd';
+import { Card, Col, Row, Statistic, Typography, Select, Space, message } from 'antd'; // Import thêm message
 import { ShoppingOutlined, UserOutlined, DollarCircleOutlined, ShoppingCartOutlined } from '@ant-design/icons';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
@@ -15,12 +15,11 @@ const Dashboard = () => {
         totalRevenue: 0
     });
     
-    // State lưu số tháng muốn xem (Mặc định 6 tháng)
     const [numMonths, setNumMonths] = useState(6);
     const [chartData, setChartData] = useState([]);
 
+    // 1. Tải thống kê tổng (Giữ nguyên)
     useEffect(() => {
-        // 1. Gọi API lấy số liệu thống kê tổng (giữ nguyên)
         const fetchStats = async () => {
             try {
                 const response = await api.get('/dashboard/stats');
@@ -32,27 +31,20 @@ const Dashboard = () => {
         fetchStats();
     }, []);
 
-    // 2. Khi số tháng thay đổi -> Tính toán lại dữ liệu biểu đồ
+    // 2. [SỬA] Tải dữ liệu biểu đồ từ API thực tế
     useEffect(() => {
-        const data = [];
-        const today = new Date();
-        
-        // Vòng lặp lùi thời gian để tạo dữ liệu
-        for (let i = numMonths - 1; i >= 0; i--) {
-            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-            const monthName = `Tháng ${d.getMonth() + 1}`; // Lấy tên tháng (1-12)
-            
-            // Random doanh thu giả lập từ 10tr đến 50tr để demo
-            // Sau này có DB thật thì thay bằng API
-            const randomRevenue = Math.floor(Math.random() * (50000000 - 10000000) + 10000000);
-            
-            data.push({
-                name: monthName,
-                revenue: randomRevenue
-            });
-        }
-        setChartData(data);
-    }, [numMonths]); // Chạy lại mỗi khi numMonths thay đổi
+        const fetchChartData = async () => {
+            try {
+                // Gọi API mới viết ở Backend
+                const response = await api.get(`/dashboard/revenue?months=${numMonths}`);
+                setChartData(response.data);
+            } catch (error) {
+                message.error("Không thể tải biểu đồ doanh thu");
+            }
+        };
+
+        fetchChartData();
+    }, [numMonths]); // Chạy lại khi numMonths thay đổi
 
     const handleMonthChange = (value) => {
         setNumMonths(value);
@@ -62,36 +54,21 @@ const Dashboard = () => {
         <div>
             <Title level={2} style={{ marginBottom: 20 }}>Tổng quan hệ thống</Title>
             
-            {/* 4 THẺ THỐNG KÊ (Giữ nguyên) */}
             <Row gutter={16} style={{ marginBottom: 30 }}>
+                {/* ... Các thẻ Statistic giữ nguyên ... */}
                 <Col span={6}>
                     <Card bordered={false} style={{ backgroundColor: '#e6f7ff' }}>
-                        <Statistic 
-                            title="Tổng Người dùng" 
-                            value={stats.totalUsers} 
-                            prefix={<UserOutlined />} 
-                            valueStyle={{ color: '#1890ff' }}
-                        />
+                        <Statistic title="Tổng Người dùng" value={stats.totalUsers} prefix={<UserOutlined />} valueStyle={{ color: '#1890ff' }} />
                     </Card>
                 </Col>
                 <Col span={6}>
                     <Card bordered={false} style={{ backgroundColor: '#f6ffed' }}>
-                        <Statistic 
-                            title="Tổng Sản phẩm" 
-                            value={stats.totalProducts} 
-                            prefix={<ShoppingOutlined />} 
-                            valueStyle={{ color: '#52c41a' }}
-                        />
+                        <Statistic title="Tổng Sản phẩm" value={stats.totalProducts} prefix={<ShoppingOutlined />} valueStyle={{ color: '#52c41a' }} />
                     </Card>
                 </Col>
                 <Col span={6}>
                     <Card bordered={false} style={{ backgroundColor: '#fff7e6' }}>
-                        <Statistic 
-                            title="Tổng Đơn hàng" 
-                            value={stats.totalOrders} 
-                            prefix={<ShoppingCartOutlined />} 
-                            valueStyle={{ color: '#fa8c16' }}
-                        />
+                        <Statistic title="Tổng Đơn hàng" value={stats.totalOrders} prefix={<ShoppingCartOutlined />} valueStyle={{ color: '#fa8c16' }} />
                     </Card>
                 </Col>
                 <Col span={6}>
@@ -107,12 +84,9 @@ const Dashboard = () => {
                 </Col>
             </Row>
 
-            {/* KHUNG BIỂU ĐỒ */}
             <Card>
-                {/* Header của Card: Tiêu đề bên trái, Select box bên phải */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <Title level={4} style={{ margin: 0 }}>Biểu đồ doanh thu</Title>
-                    
+                    <Title level={4} style={{ margin: 0 }}>Biểu đồ doanh thu thực tế</Title>
                     <Space>
                         <span>Thời gian:</span>
                         <Select defaultValue={6} style={{ width: 120 }} onChange={handleMonthChange}>
@@ -129,10 +103,16 @@ const Dashboard = () => {
                         <BarChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
-                            <YAxis tickFormatter={(value) => new Intl.NumberFormat('vi-VN', { notation: "compact", compactDisplay: "short" }).format(value)} width={80}/>
-                            <Tooltip formatter={(value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)} />
+                            <YAxis 
+                                tickFormatter={(value) => new Intl.NumberFormat('vi-VN', { notation: "compact", compactDisplay: "short" }).format(value)} 
+                                width={80}
+                            />
+                            <Tooltip 
+                                formatter={(value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value)} 
+                                labelStyle={{ color: '#333' }}
+                            />
                             <Legend />
-                            <Bar dataKey="revenue" name="Doanh thu" fill="#8884d8" barSize={50} />
+                            <Bar dataKey="revenue" name="Doanh thu" fill="#1890ff" barSize={50} radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>
