@@ -12,6 +12,7 @@ import Checkout from './pages/Checkout';
 import Cart from './pages/Cart';
 import AdminOrder from './pages/AdminOrder';
 import OrderHistory from './pages/OrderHistory';
+import PaymentSuccess from './pages/PaymentSuccess';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -40,6 +41,7 @@ function App() {
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="payment-success" element={<PaymentSuccess />} />
 
         {/* --- KHU VỰC ADMIN --- */}
         <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>

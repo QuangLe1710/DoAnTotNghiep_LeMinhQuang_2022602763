@@ -19,21 +19,37 @@ public class OrderController {
     @Autowired
     private OrderRepository orderRepository;
 
+//    @PostMapping("/place")
+//    public ResponseEntity<?> placeOrder(@RequestBody Order order) {
+//        try {
+//            // Thiết lập quan hệ 2 chiều để JPA lưu được cả OrderDetail
+//            if (order.getOrderDetails() != null) {
+//                for (OrderDetail detail : order.getOrderDetails()) {
+//                    detail.setOrder(order);
+//                }
+//            }
+//            orderRepository.save(order);
+//            return ResponseEntity.ok("Đặt hàng thành công");
+//        } catch (Exception e) {
+//            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
+//        }
+//    }
     @PostMapping("/place")
     public ResponseEntity<?> placeOrder(@RequestBody Order order) {
         try {
-            // Thiết lập quan hệ 2 chiều để JPA lưu được cả OrderDetail
+            // ... (giữ nguyên logic thiết lập orderDetails) ...
             if (order.getOrderDetails() != null) {
                 for (OrderDetail detail : order.getOrderDetails()) {
                     detail.setOrder(order);
                 }
             }
-            orderRepository.save(order);
-            return ResponseEntity.ok("Đặt hàng thành công");
+            Order savedOrder = orderRepository.save(order); // Lưu và lấy lại object đã lưu
+            return ResponseEntity.ok(savedOrder); // Trả về cả cục Order (có ID) thay vì string
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
         }
     }
+
 
     // API Lấy danh sách tất cả đơn hàng (Sắp xếp mới nhất lên đầu)
     // Sửa lại hàm getAllOrders cũ (nếu có) hoặc thêm mới
