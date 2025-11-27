@@ -61,6 +61,13 @@ public class SecurityConfig {
                         .requestMatchers("/api/orders/pending-orders").hasAuthority("ADMIN")
                         .requestMatchers("/api/orders/count-pending").hasAuthority("ADMIN")
 
+                        // --- [THÊM ĐOẠN NÀY] MỞ CỔNG SWAGGER UI ---
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
                         // 4. USER & ADMIN
                         .requestMatchers("/api/orders/place").authenticated()
                         .requestMatchers("/api/orders/my-orders/**").authenticated()
