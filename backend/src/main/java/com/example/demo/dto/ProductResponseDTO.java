@@ -8,13 +8,30 @@ public class ProductResponseDTO {
     private String name;
     private Double price;
     private Double salePrice;
-    private String brandName;    // Tên hãng (thay vì object)
-    private String categoryName; // Tên danh mục
-    private String thumbnail;    // Ảnh đại diện chính
-    private List<String> images; // List tất cả link ảnh
     private Integer stockQuantity;
-    // ... các trường specs khác nếu cần hiện
+    private Integer warrantyPeriod;
+    private Integer viewCount;
 
+    // Mô tả
+    private String description;
+    private String shortDescription;
+
+    // Cấu hình (Specs)
+    private String cpu;
+    private String ram;
+    private String storage;
+    private String screen;
+    private String gpu;
+    private String battery;
+    private Float weight;
+
+    // Quan hệ
+    private String brandName;
+    private String categoryName;
+
+    // Ảnh
+    private String thumbnail;
+    private List<String> images;
 
     public Long getId() {
         return id;
@@ -48,6 +65,102 @@ public class ProductResponseDTO {
         this.salePrice = salePrice;
     }
 
+    public Integer getStockQuantity() {
+        return stockQuantity;
+    }
+
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stockQuantity = stockQuantity;
+    }
+
+    public Integer getWarrantyPeriod() {
+        return warrantyPeriod;
+    }
+
+    public void setWarrantyPeriod(Integer warrantyPeriod) {
+        this.warrantyPeriod = warrantyPeriod;
+    }
+
+    public Integer getViewCount() {
+        return viewCount;
+    }
+
+    public void setViewCount(Integer viewCount) {
+        this.viewCount = viewCount;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public String getShortDescription() {
+        return shortDescription;
+    }
+
+    public void setShortDescription(String shortDescription) {
+        this.shortDescription = shortDescription;
+    }
+
+    public String getCpu() {
+        return cpu;
+    }
+
+    public void setCpu(String cpu) {
+        this.cpu = cpu;
+    }
+
+    public String getRam() {
+        return ram;
+    }
+
+    public void setRam(String ram) {
+        this.ram = ram;
+    }
+
+    public String getStorage() {
+        return storage;
+    }
+
+    public void setStorage(String storage) {
+        this.storage = storage;
+    }
+
+    public String getScreen() {
+        return screen;
+    }
+
+    public void setScreen(String screen) {
+        this.screen = screen;
+    }
+
+    public String getGpu() {
+        return gpu;
+    }
+
+    public void setGpu(String gpu) {
+        this.gpu = gpu;
+    }
+
+    public String getBattery() {
+        return battery;
+    }
+
+    public void setBattery(String battery) {
+        this.battery = battery;
+    }
+
+    public Float getWeight() {
+        return weight;
+    }
+
+    public void setWeight(Float weight) {
+        this.weight = weight;
+    }
+
     public String getBrandName() {
         return brandName;
     }
@@ -78,13 +191,5 @@ public class ProductResponseDTO {
 
     public void setImages(List<String> images) {
         this.images = images;
-    }
-
-    public Integer getStockQuantity() {
-        return stockQuantity;
-    }
-
-    public void setStockQuantity(Integer stockQuantity) {
-        this.stockQuantity = stockQuantity;
     }
 }

@@ -1,52 +1,52 @@
 import React, { useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Result, Button } from 'antd';
-import api from '../services/api';
-import { useCart } from '../context/CartContext';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { CheckCircleFilled, CloseCircleFilled } from '@ant-design/icons';
 
 const PaymentSuccess = () => {
-    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { clearCart } = useCart();
-
-    useEffect(() => {
-        // Lấy các tham số VNPay trả về trên URL
-        const params = Object.fromEntries([...searchParams]);
-        
-        // Nếu mã phản hồi là 00 (Thành công)
-        if (searchParams.get('vnp_ResponseCode') === '00') {
-            const confirmPayment = async () => {
-                try {
-                    // Gọi API Backend để cập nhật trạng thái đơn hàng thành SHIPPING
-                    await api.get('/payment/vnpay_return', { params });
-                    clearCart(); // Xóa giỏ hàng
-                } catch (error) {
-                    console.error("Lỗi xác thực thanh toán");
-                }
-            };
-            confirmPayment();
-        }
-    }, []);
-
-    const isSuccess = searchParams.get('vnp_ResponseCode') === '00';
+    const [searchParams] = useSearchParams();
+    
+    // Lấy mã phản hồi từ VNPay (nếu có)
+    const vnpResponseCode = searchParams.get('vnp_ResponseCode');
+    const isVnPaySuccess = vnpResponseCode === '00';
+    const isVnPayError = vnpResponseCode && vnpResponseCode !== '00';
 
     return (
-        <div style={{ marginTop: 50, padding: 20 }}>
-            <Result
-                status={isSuccess ? "success" : "error"}
-                title={isSuccess ? "Thanh toán thành công!" : "Thanh toán thất bại!"}
-                subTitle={isSuccess 
-                    ? "Cảm ơn bạn. Đơn hàng đã được thanh toán và đang chờ giao." 
-                    : "Giao dịch bị hủy hoặc có lỗi xảy ra."}
-                extra={[
-                    <Button type="primary" key="home" onClick={() => navigate('/')}>
-                        Về trang chủ
-                    </Button>,
-                    <Button key="history" onClick={() => navigate('/history')}>
-                        Xem lịch sử đơn
-                    </Button>,
-                ]}
-            />
+        <div style={{ padding: '50px', display: 'flex', justifyContent: 'center', minHeight: '80vh', alignItems: 'center' }}>
+            {/* TRƯỜNG HỢP 1: THANH TOÁN VNPAY THẤT BẠI */}
+            {isVnPayError ? (
+                <Result
+                    status="error"
+                    icon={<CloseCircleFilled style={{ color: 'red' }} />}
+                    title="Thanh toán thất bại!"
+                    subTitle="Giao dịch qua VNPay không thành công hoặc đã bị hủy."
+                    extra={[
+                        <Button type="primary" key="console" onClick={() => navigate('/checkout')}>
+                            Thử lại
+                        </Button>,
+                        <Button key="buy" onClick={() => navigate('/')}>
+                            Về trang chủ
+                        </Button>,
+                    ]}
+                />
+            ) : (
+                /* TRƯỜNG HỢP 2: THÀNH CÔNG (COD HOẶC VNPAY OK) */
+                <Result
+                    status="success"
+                    icon={<CheckCircleFilled style={{ color: '#52c41a' }} />}
+                    title="Đặt hàng thành công!"
+                    subTitle={isVnPaySuccess ? "Bạn đã thanh toán thành công qua VNPay. Đơn hàng đang được xử lý." : "Cảm ơn bạn đã mua sắm. Đơn hàng sẽ sớm được giao."}
+                    extra={[
+                        <Button type="primary" key="console" onClick={() => navigate('/')}>
+                            Tiếp tục mua sắm
+                        </Button>,
+                        <Button key="buy" onClick={() => navigate('/history')}>
+                            Xem lịch sử đơn hàng
+                        </Button>,
+                    ]}
+                />
+            )}
         </div>
     );
 };

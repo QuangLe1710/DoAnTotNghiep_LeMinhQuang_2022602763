@@ -160,6 +160,8 @@ CREATE TABLE `orders` (
                           CONSTRAINT `fk_orders_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
                           CONSTRAINT `fk_orders_voucher` FOREIGN KEY (`voucher_id`) REFERENCES `vouchers` (`id`)
 );
+ALTER TABLE orders ADD COLUMN cancel_reason TEXT DEFAULT NULL;
+
 
 CREATE TABLE `order_details` (
                                  `id` bigint NOT NULL AUTO_INCREMENT,

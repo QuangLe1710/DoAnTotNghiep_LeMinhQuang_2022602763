@@ -1,39 +1,35 @@
 import React from 'react';
 import { Layout, Input, Badge, Button, Avatar, Dropdown, Space, FloatButton } from 'antd';
-import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, CustomerServiceOutlined, PhoneOutlined, FacebookOutlined, MessageOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+// 1. Thêm GiftOutlined vào import
+import { ShoppingCartOutlined, UserOutlined, LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, CustomerServiceOutlined, PhoneOutlined, FacebookOutlined, MessageOutlined, VerticalAlignTopOutlined, DiffOutlined, GiftOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet, Link } from 'react-router-dom';
-import { useCart } from '../context/CartContext'; // <--- 1. IMPORT CART CONTEXT
-import { useCompare } from '../context/CompareContext'; // Import context
-import CompareModal from './CompareModal'; // Import Modal vừa tạo
-import { DiffOutlined } from '@ant-design/icons'; // Icon so sánh
+import { useCart } from '../context/CartContext';
+import { useCompare } from '../context/CompareContext';
+import CompareModal from './CompareModal';
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
 
 const ClientLayout = () => {
     const navigate = useNavigate();
-    const { cartItems } = useCart(); // <--- 2. LẤY CART ITEMS TỪ CONTEXT
-    const { openCompareModal, compareList } = useCompare(); // Lấy hàm mở modal
+    const { cartItems } = useCart();
+    const { openCompareModal, compareList } = useCompare();
     
-    // --- SỬA ĐOẠN NÀY ---
+    // Logic lấy User (Giữ nguyên code cũ của bạn)
     const [user, setUser] = React.useState(() => {
-        const userString = localStorage.getItem('user'); // Hoặc lấy 'username' nếu bạn lưu riêng lẻ
-        // Vì Login.jsx lưu lẻ từng món: username, fullName... nên ta tạo object user giả lập
         const username = localStorage.getItem('username');
         const fullName = localStorage.getItem('fullName');
         const roles = localStorage.getItem('roles');
-        
         if (username) {
             return { 
                 username, 
                 fullName, 
-                role: roles && roles.includes('ROLE_ADMIN') ? 'ADMIN' : 'USER' // Map lại role cho khớp logic cũ
+                role: roles && roles.includes('ROLE_ADMIN') ? 'ADMIN' : 'USER' 
             };
         }
         return null;
     });
 
-    // Lắng nghe sự kiện storage (khi login ở tab khác hoặc reload)
     React.useEffect(() => {
         const handleStorageChange = () => {
             const username = localStorage.getItem('username');
@@ -47,11 +43,8 @@ const ClientLayout = () => {
                 setUser(null);
             }
         };
-
-        window.addEventListener('storage', handleStorageChange); // Lắng nghe đa tab
-        // Mẹo: Lắng nghe thêm event custom để cập nhật ngay trên cùng 1 tab
+        window.addEventListener('storage', handleStorageChange);
         window.addEventListener('auth-change', handleStorageChange);
-
         return () => {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('auth-change', handleStorageChange);
@@ -60,7 +53,12 @@ const ClientLayout = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('fullName');
+        localStorage.removeItem('roles');
         localStorage.removeItem('user');
+        localStorage.removeItem('cart');
+        window.dispatchEvent(new Event('auth-change'));
         navigate('/login');
     };
 
@@ -72,7 +70,6 @@ const ClientLayout = () => {
         }
     };
 
-    // Tính tổng số lượng sản phẩm (Ví dụ: mua 2 cái iPhone thì hiện số 2)
     const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
 
     const userMenu = {
@@ -84,8 +81,8 @@ const ClientLayout = () => {
             }] : []),
             {
                 key: 'history',
-                label: <Link to="/history">Lịch sử đơn hàng</Link>, // <--- THÊM MỤC NÀY
-                icon: <ShoppingOutlined /> // Nhớ import icon nếu cần
+                label: <Link to="/history">Lịch sử đơn hàng</Link>,
+                icon: <ShoppingOutlined />
             },
             {
                 key: 'logout',
@@ -93,12 +90,17 @@ const ClientLayout = () => {
                 icon: <LogoutOutlined />,
                 onClick: handleLogout
             },
+            {
+                key: 'profile',
+                label: <Link to="/profile">Tài khoản của tôi</Link>,
+                icon: <UserOutlined />
+            },
         ]
     };
 
     return (
         <Layout style={{ minHeight: '100vh' }}>
-            <Header style={{ /* ...giữ nguyên style cũ... */ position: 'sticky', top: 0, zIndex: 100, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', boxShadow: '0 2px 8px #f0f1f2', padding: '0 50px' }}>
+            <Header style={{ position: 'sticky', top: 0, zIndex: 100, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#fff', boxShadow: '0 2px 8px #f0f1f2', padding: '0 50px' }}>
                 
                 <div className="logo" style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => navigate('/')}>
                     <LaptopOutlined style={{ fontSize: '32px', color: '#1890ff', marginRight: 10 }} />
@@ -116,13 +118,22 @@ const ClientLayout = () => {
                 </div>
 
                 <Space size="large">
-                    {/* 3. SỬA BADGE: Thay số 0 cứng bằng biến cartCount */}
+                    {/* --- 2. ĐẶT NÚT MÃ GIẢM GIÁ Ở ĐÂY (NGOÀI KHỐI ĐIỀU KIỆN USER) --- */}
+                    <Button 
+                        type="text" 
+                        icon={<GiftOutlined style={{ fontSize: 20, color: '#cf1322' }} />} 
+                        onClick={() => navigate('/vouchers')}
+                        style={{ display: 'flex', alignItems: 'center', fontWeight: 500 }}
+                    >
+                        Mã giảm giá
+                    </Button>
+
                     <Badge count={cartCount} showZero>
                         <Button 
                             shape="circle" 
                             icon={<ShoppingCartOutlined />} 
                             size="large" 
-                            onClick={() => navigate('/cart')} // Thêm sự kiện bấm vào icon thì chuyển sang trang giỏ hàng
+                            onClick={() => navigate('/cart')} 
                         />
                     </Badge>
 
@@ -158,44 +169,35 @@ const ClientLayout = () => {
 
             <CompareModal />
 
-            {/* --- NÚT LIÊN HỆ NỔI (FLOATING ACTION BUTTON) --- */}
+            {/* Float Buttons */}
             <FloatButton.Group
-                trigger="click" // Bấm vào để xòe ra (Toggle)
-                type="primary" // Màu xanh chủ đạo
-                style={{ right: 24, bottom: 24 }} // Vị trí góc phải dưới
-                icon={<CustomerServiceOutlined />} // Icon mặc định (Tai nghe CSKH)
+                trigger="click"
+                type="primary"
+                style={{ right: 24, bottom: 24 }}
+                icon={<CustomerServiceOutlined />}
                 tooltip={<div>Cần hỗ trợ?</div>}
             >
-                {/* 1. Nút gọi điện */}
                 <FloatButton 
                     icon={<PhoneOutlined />} 
                     tooltip={<div>Hotline: 0348.773.921</div>}
-                    onClick={() => window.open('tel:0348773921')} // Gọi điện ngay
+                    onClick={() => window.open('tel:0348773921')} 
                 />
-
-                {/* 2. Nút Zalo (Dùng tạm icon Message vì AntD ko có icon Zalo) */}
                 <FloatButton 
                     icon={<MessageOutlined />} 
                     tooltip={<div>Chat Zalo</div>}
                     onClick={() => window.open('https://zalo.me/0348773921', '_blank')} 
                 />
-
-                {/* 3. Nút Facebook */}
                 <FloatButton 
                     icon={<FacebookOutlined />} 
                     tooltip={<div>Fanpage Facebook</div>}
-                    onClick={() => window.open('https://www.facebook.com/your-page', '_blank')} 
+                    onClick={() => window.open('https://www.facebook.com/lomo.quang.9/', '_blank')} 
                 />
-
-                {/* --- [THÊM NÚT SO SÁNH] --- */}
                 <FloatButton 
                     icon={<DiffOutlined />} 
-                    badge={{ count: compareList.length, color: 'red' }} // Hiện số lượng đang so sánh
+                    badge={{ count: compareList.length, color: 'red' }}
                     tooltip={<div>So sánh sản phẩm</div>}
                     onClick={openCompareModal}
                 />
-                
-                {/* 4. Nút cuộn lên đầu trang (Tiện ích thêm) */}
                 <FloatButton.BackTop visibilityHeight={0} icon={<VerticalAlignTopOutlined />} />
             </FloatButton.Group>
         </Layout>

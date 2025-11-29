@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Layout, Menu, Button, theme, notification, Badge, Popover, List, Avatar, Typography } from 'antd'; // Import thêm Popover, List, Avatar, Typography
-import { LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, BellOutlined, UserOutlined } from '@ant-design/icons';
+import { LaptopOutlined, LogoutOutlined, DashboardOutlined, ShoppingOutlined, BellOutlined, UserOutlined, GiftOutlined, TeamOutlined, TagsOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useNavigate, Outlet } from 'react-router-dom';
 import api from '../services/api';
 
@@ -52,8 +52,13 @@ const AdminLayout = () => {
     }, []);
 
     const handleLogout = () => {
+        // Xóa sạch token và thông tin
         localStorage.removeItem('token');
-        localStorage.removeItem('user');
+        localStorage.removeItem('username');
+        localStorage.removeItem('fullName');
+        localStorage.removeItem('roles');
+        localStorage.removeItem('user'); // Xóa key cũ cho chắc
+
         navigate('/login');
     };
 
@@ -116,6 +121,11 @@ const AdminLayout = () => {
                                 </div>
                             )
                         },
+                        // --- MỚI ---
+                        { key: '/admin/vouchers', icon: <GiftOutlined />, label: 'Quản lý Khuyến mãi' },
+                        { key: '/admin/users', icon: <TeamOutlined />, label: 'Quản lý Người dùng' },
+                        { key: '/admin/brands', icon: <TagsOutlined />, label: 'QL Thương hiệu' },
+                        { key: '/admin/categories', icon: <AppstoreOutlined />, label: 'QL Danh mục' },
                     ]}
                 />
             </Sider>

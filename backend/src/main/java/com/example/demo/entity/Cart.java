@@ -1,6 +1,7 @@
 package com.example.demo.entity;
 
 import jakarta.persistence.*;
+import java.util.ArrayList; // Nhớ import dòng này
 import lombok.Data;
 import java.util.Date;
 import java.util.List;
@@ -20,9 +21,9 @@ public class Cart {
     @Column(name = "updated_at")
     private Date updatedAt = new Date();
 
-    // Một giỏ hàng chứa nhiều sản phẩm (CartItem)
+    // Khởi tạo ngay danh sách rỗng để tránh bị null
     @OneToMany(mappedBy = "cart", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<CartItem> cartItems;
+    private List<CartItem> cartItems = new ArrayList<>();
 
     public Long getId() {
         return id;

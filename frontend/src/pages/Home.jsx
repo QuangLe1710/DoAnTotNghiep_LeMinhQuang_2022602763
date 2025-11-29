@@ -1,93 +1,99 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Card, Col, Row, Typography, Spin, Button, Rate, message, Tag, Carousel, Checkbox, Slider, Divider, Empty } from 'antd';
-import { ShoppingCartOutlined, EyeOutlined, LeftOutlined, RightOutlined, FilterOutlined } from '@ant-design/icons';
-import { useNavigate, useSearchParams } from 'react-router-dom'; // Import thêm useSearchParams
+import { ShoppingCartOutlined, EyeOutlined, LeftOutlined, RightOutlined, FilterOutlined, DiffOutlined } from '@ant-design/icons';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../services/api';
 import { useCart } from '../context/CartContext';
+import { useCompare } from '../context/CompareContext'; // Import context so sánh
 import { FloatButton } from 'antd';
-import { 
-    CustomerServiceOutlined, 
-    PhoneOutlined, 
-    FacebookOutlined, 
-    MessageOutlined, 
-    VerticalAlignTopOutlined 
-} from '@ant-design/icons';
+import { CustomerServiceOutlined, PhoneOutlined, FacebookOutlined, MessageOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 
 const { Meta } = Card;
 const { Title, Paragraph } = Typography;
 
 const Home = () => {
-    const [products, setProducts] = useState([]); // Dữ liệu gốc từ API
-    const [filteredProducts, setFilteredProducts] = useState([]); // Dữ liệu đã lọc để hiển thị
+    const [products, setProducts] = useState([]);
+    const [filteredProducts, setFilteredProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    
+    // Dữ liệu bộ lọc động từ API
+    const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
+
     const { addToCart } = useCart();
+    const { addToCompare } = useCompare(); // Lấy hàm so sánh
     
     const navigate = useNavigate();
-    const [searchParams] = useSearchParams(); // Hook lấy tham số từ URL
+    const [searchParams] = useSearchParams();
     const carouselRef = useRef(null);
 
-    // Lấy từ khóa "search" trên đường dẫn. Ví dụ: ?search=dell -> searchTerm = "dell"
     const searchTerm = searchParams.get('search');
 
-    // --- STATE CHO BỘ LỌC BÊN TRÁI ---
+    // --- STATE BỘ LỌC ---
     const [selectedBrands, setSelectedBrands] = useState([]);
+    const [selectedCategories, setSelectedCategories] = useState([]); // Mới
     const [priceRange, setPriceRange] = useState([0, 50000000]);
 
-    // 1. Tải danh sách sản phẩm khi vào trang
+    // 1. Tải dữ liệu (Sản phẩm + Brand + Category)
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             try {
-                // Gọi API lấy tất cả (hoặc phân trang trang đầu tiên)
-                const response = await api.get('/products?page=0&limit=100'); // Lấy nhiều chút để hiện trang chủ
-                
-                // Kiểm tra xem response.data có phải array không (trường hợp API cũ) hay là object (API mới)
-                const productList = Array.isArray(response.data) ? response.data : response.data.products;
-                
-                setProducts(productList || []); // Fallback mảng rỗng nếu null
-                setFilteredProducts(productList || []);
+                const [prodRes, brandRes, cateRes] = await Promise.all([
+                    api.get('/products?page=0&limit=100'), // Lấy nhiều chút
+                    api.get('/brands'),
+                    api.get('/categories')
+                ]);
+
+                // Xử lý dữ liệu sản phẩm (API phân trang trả về object)
+                const productList = prodRes.data.products || [];
+                setProducts(productList);
+                setFilteredProducts(productList);
+
+                // Set dữ liệu bộ lọc
+                setBrands(brandRes.data);
+                setCategories(cateRes.data);
+
             } catch (error) {
-                message.error("Lỗi tải sản phẩm!");
-                setProducts([]); // Set mảng rỗng để tránh lỗi map
+                message.error("Lỗi tải dữ liệu!");
             } finally {
                 setLoading(false);
             }
         };
-        fetchProducts();
+        fetchData();
     }, []);
 
-    // 2. LOGIC LỌC TỔNG HỢP (Chạy lại mỗi khi có thay đổi Search, Brand, hoặc Price)
+    // 2. LOGIC LỌC TỔNG HỢP
     useEffect(() => {
         let temp = [...products];
 
-        // Bước 1: Lọc theo từ khóa tìm kiếm
+        // Lọc theo từ khóa
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
             temp = temp.filter(p => 
                 p.name.toLowerCase().includes(lowerTerm) || 
-                (p.brandName && p.brandName.toLowerCase().includes(lowerTerm)) || // Sửa p.brand thành p.brandName
-                (p.description && p.description.toLowerCase().includes(lowerTerm))
+                (p.brandName && p.brandName.toLowerCase().includes(lowerTerm)) ||
+                (p.categoryName && p.categoryName.toLowerCase().includes(lowerTerm))
             );
         }
 
-        // Bước 2: Lọc theo Hãng
+        // Lọc theo Hãng (So sánh tên hãng)
         if (selectedBrands.length > 0) {
-            // Sửa p.brand thành p.brandName
-            temp = temp.filter(p => selectedBrands.includes(p.brandName)); 
+            temp = temp.filter(p => selectedBrands.includes(p.brandName));
         }
 
-        // Bước 3: Lọc theo Giá tiền
+        // Lọc theo Danh mục (Mới)
+        if (selectedCategories.length > 0) {
+            temp = temp.filter(p => selectedCategories.includes(p.categoryName));
+        }
+
+        // Lọc theo Giá
         temp = temp.filter(p => p.price >= priceRange[0] && p.price <= priceRange[1]);
 
-        // Cập nhật danh sách hiển thị
         setFilteredProducts(temp);
 
-    }, [selectedBrands, priceRange, products, searchTerm]); // Thêm searchTerm vào dependency
+    }, [selectedBrands, selectedCategories, priceRange, products, searchTerm]);
 
-
-    // Các tùy chọn hãng cho Sidebar
-    const brandOptions = ['Dell', 'HP', 'Asus', 'Macbook', 'Acer', 'Lenovo'];
-
-    // --- DỮ LIỆU BANNER ---
+    // Banner data (Giữ nguyên)
     const banners = [
         { id: 1, title: "SIÊU SALE MÙA TỰU TRƯỜNG", desc: "Giảm giá 30% - Tặng Balo & Chuột", color: 'linear-gradient(90deg, #1890ff 0%, #0050b3 100%)' },
         { id: 2, title: "MACBOOK AIR M2 - ĐỈNH CAO", desc: "Sở hữu siêu phẩm Apple chỉ từ 26 triệu", color: 'linear-gradient(90deg, #ff4d4f 0%, #cf1322 100%)' },
@@ -99,7 +105,7 @@ const Home = () => {
 
     return (
         <div>
-            {/* --- BANNER SLIDER (Chỉ hiện khi KHÔNG tìm kiếm để đỡ rối mắt) --- */}
+            {/* Banner Slider */}
             {!searchTerm && (
                 <div style={{ position: 'relative', marginBottom: 40, borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                     <Button shape="circle" icon={<LeftOutlined />} style={{ ...arrowStyle, left: '10px' }} onClick={() => carouselRef.current.prev()} />
@@ -119,23 +125,39 @@ const Home = () => {
             )}
 
             <Row gutter={24}>
-                {/* --- CỘT TRÁI: BỘ LỌC (SIDER) --- */}
+                {/* --- SIDEBAR BỘ LỌC --- */}
                 <Col xs={24} sm={24} md={6} lg={5}>
                     <Card title={<><FilterOutlined /> Bộ lọc tìm kiếm</>} style={{ position: 'sticky', top: 20 }} size="small">
                         
-                        {/* Lọc Hãng */}
+                        {/* 1. Lọc Danh mục (Mới) */}
+                        <div style={{ marginBottom: 20 }}>
+                            <h4 style={{ fontWeight: 600, marginBottom: 10 }}>Danh mục</h4>
+                            <Checkbox.Group 
+                                style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
+                                onChange={setSelectedCategories}
+                            >
+                                {categories.map(c => (
+                                    <Checkbox key={c.id} value={c.name}>{c.name}</Checkbox>
+                                ))}
+                            </Checkbox.Group>
+                        </div>
+                        <Divider />
+
+                        {/* 2. Lọc Hãng (Động từ API) */}
                         <div style={{ marginBottom: 20 }}>
                             <h4 style={{ fontWeight: 600, marginBottom: 10 }}>Thương hiệu</h4>
                             <Checkbox.Group 
-                                options={brandOptions} 
                                 style={{ display: 'flex', flexDirection: 'column', gap: 8 }}
-                                onChange={(checkedValues) => setSelectedBrands(checkedValues)}
-                            />
+                                onChange={setSelectedBrands}
+                            >
+                                {brands.map(b => (
+                                    <Checkbox key={b.id} value={b.name}>{b.name}</Checkbox>
+                                ))}
+                            </Checkbox.Group>
                         </div>
-                        
                         <Divider />
 
-                        {/* Lọc Giá */}
+                        {/* 3. Lọc Giá */}
                         <div style={{ marginBottom: 20 }}>
                             <h4 style={{ fontWeight: 600, marginBottom: 10 }}>Khoảng giá</h4>
                             <Slider 
@@ -144,7 +166,7 @@ const Home = () => {
                                 max={50000000} 
                                 step={1000000}
                                 defaultValue={[0, 50000000]} 
-                                onChange={(value) => setPriceRange(value)}
+                                onChange={setPriceRange}
                                 tooltip={{ formatter: value => `${(value/1000000)} tr` }}
                             />
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888' }}>
@@ -155,19 +177,20 @@ const Home = () => {
 
                         <Button type="primary" block onClick={() => { 
                             setSelectedBrands([]); 
+                            setSelectedCategories([]);
                             setPriceRange([0, 50000000]); 
-                            navigate('/'); // Xóa cả từ khóa tìm kiếm trên URL
+                            navigate('/'); 
                         }}>
-                            Xóa tất cả bộ lọc
+                            Xóa bộ lọc
                         </Button>
                     </Card>
                 </Col>
 
-                {/* --- CỘT PHẢI: DANH SÁCH SẢN PHẨM --- */}
+                {/* --- DANH SÁCH SẢN PHẨM --- */}
                 <Col xs={24} sm={24} md={18} lg={19}>
                     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 20 }}>
                         <Title level={3} style={{ margin: 0, borderLeft: '4px solid #1890ff', paddingLeft: 10 }}>
-                            {searchTerm ? `Kết quả tìm kiếm: "${searchTerm}"` : 'Tất cả sản phẩm'} 
+                            {searchTerm ? `Kết quả: "${searchTerm}"` : 'Tất cả sản phẩm'} 
                             <span style={{ fontSize: '16px', color: '#888', marginLeft: 10, fontWeight: 'normal' }}>
                                 ({filteredProducts.length} sản phẩm)
                             </span>
@@ -189,11 +212,11 @@ const Home = () => {
                                                 <div style={{ position: 'relative', height: 180, padding: 10, textAlign: 'center', backgroundColor: '#fff' }}>
                                                     <img 
                                                         alt={product.name} 
-                                                        // Ưu tiên lấy thumbnail, nếu ko có thì lấy ảnh đầu tiên trong mảng images, nếu ko có nữa thì fallback ảnh rỗng
-                                                        src={product.thumbnail || (product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image')} 
+                                                        // Logic lấy ảnh: Thumbnail -> Ảnh đầu -> Placeholder
+                                                        src={product.thumbnail || (product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image')}
                                                         style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', transition: 'transform 0.3s' }} 
                                                         onClick={() => navigate(`/product/${product.id}`)}
-                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error'; }} // Xử lý nếu link ảnh chết
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error'; }}
                                                     />
                                                     <Tag color="#f50" style={{ position: 'absolute', top: 10, right: 10, borderRadius: 4 }}>HOT</Tag>
                                                 </div>
@@ -203,10 +226,20 @@ const Home = () => {
                                                     Chi tiết
                                                 </Button>,
                                                 <Button 
+                                                    type="text" 
+                                                    icon={<DiffOutlined />} 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        addToCompare(product); // Nút so sánh
+                                                    }}
+                                                >
+                                                    So sánh
+                                                </Button>,
+                                                <Button 
                                                     type="primary" 
                                                     icon={<ShoppingCartOutlined />} 
                                                     onClick={(e) => {
-                                                        e.stopPropagation(); // Ngăn việc click nút này mà nó nhảy sang trang detail
+                                                        e.stopPropagation();
                                                         addToCart(product);
                                                     }}
                                                 >
@@ -231,7 +264,7 @@ const Home = () => {
                                                         </div>
                                                         <div style={{ fontSize: 11, color: '#888', marginBottom: 5, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                                                             <Tag style={{marginRight:0}}>{product.brandName}</Tag>
-                                                            <Tag style={{marginRight:0}}>{product.cpu}</Tag>
+                                                            <Tag style={{marginRight:0}}>{product.categoryName}</Tag>
                                                         </div>
                                                         <Rate disabled defaultValue={5} style={{ fontSize: 10 }} />
                                                     </div>
@@ -247,39 +280,19 @@ const Home = () => {
                     )}
                 </Col>
             </Row>
-            {/* --- NÚT LIÊN HỆ NỔI (FLOATING ACTION BUTTON) --- */}
+
+            {/* Float Buttons */}
             <FloatButton.Group
-                trigger="click" // Bấm vào để xòe ra (Toggle)
-                type="primary" // Màu xanh chủ đạo
-                style={{ right: 24, bottom: 24 }} // Vị trí góc phải dưới
-                icon={<CustomerServiceOutlined />} // Icon mặc định (Tai nghe CSKH)
-                tooltip={<div>Cần hỗ trợ?</div>}
+                trigger="click"
+                type="primary"
+                style={{ right: 24, bottom: 24 }}
+                icon={<CustomerServiceOutlined />}
             >
-                {/* 1. Nút gọi điện */}
-                <FloatButton 
-                    icon={<PhoneOutlined />} 
-                    tooltip={<div>Hotline: 0348.773.921</div>}
-                    onClick={() => window.open('tel:0348773921')} // Gọi điện ngay
-                />
-
-                {/* 2. Nút Zalo (Dùng tạm icon Message vì AntD ko có icon Zalo) */}
-                <FloatButton 
-                    icon={<MessageOutlined />} 
-                    tooltip={<div>Chat Zalo</div>}
-                    onClick={() => window.open('https://zalo.me/0348773921', '_blank')} 
-                />
-
-                {/* 3. Nút Facebook */}
-                <FloatButton 
-                    icon={<FacebookOutlined />} 
-                    tooltip={<div>Fanpage Facebook</div>}
-                    onClick={() => window.open('https://www.facebook.com/your-page', '_blank')} 
-                />
-                
-                {/* 4. Nút cuộn lên đầu trang (Tiện ích thêm) */}
+                <FloatButton icon={<PhoneOutlined />} onClick={() => window.open('tel:0348773921')} />
+                <FloatButton icon={<MessageOutlined />} onClick={() => window.open('https://zalo.me/0348773921', '_blank')} />
+                <FloatButton icon={<FacebookOutlined />} onClick={() => window.open('https://facebook.com', '_blank')} />
                 <FloatButton.BackTop visibilityHeight={0} icon={<VerticalAlignTopOutlined />} />
             </FloatButton.Group>
-            
         </div>
     );
 };

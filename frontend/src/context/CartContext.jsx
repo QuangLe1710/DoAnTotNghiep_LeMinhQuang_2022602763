@@ -1,59 +1,140 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { message } from 'antd';
+import api from '../services/api';
 
 const CartContext = createContext();
 
 export const useCart = () => useContext(CartContext);
 
 export const CartProvider = ({ children }) => {
-    // --- SỬA ĐOẠN NÀY ---
-    // Thay vì useState([]), ta dùng hàm để lấy dữ liệu ngay lập tức khi khởi tạo
-    const [cartItems, setCartItems] = useState(() => {
-        const storedCart = localStorage.getItem('cart');
-        return storedCart ? JSON.parse(storedCart) : [];
-    });
-
-    // --- BỎ useEffect SỐ 1 (Đọc dữ liệu) VÌ ĐÃ LÀM Ở TRÊN RỒI ---
+    const [cartItems, setCartItems] = useState([]);
     
-    // Giữ nguyên useEffect SỐ 2 (Lưu dữ liệu khi thay đổi)
-    useEffect(() => {
-        localStorage.setItem('cart', JSON.stringify(cartItems));
-    }, [cartItems]);
+    // Check login
+    const isLogin = !!localStorage.getItem('token');
 
-    // --- CÁC HÀM DƯỚI GIỮ NGUYÊN KHÔNG ĐỔI ---
-    const addToCart = (product) => {
-        const existingItem = cartItems.find(item => item.id === product.id);
-        if (existingItem) {
-            setCartItems(cartItems.map(item => 
-                item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-            ));
+    // --- 1. LOAD GIỎ HÀNG (CÓ LOGIC GỘP) ---
+    const fetchCart = async () => {
+        let itemsRaw = [];
+
+        if (isLogin) {
+            try {
+                // Lấy từ Backend
+                const response = await api.get('/carts');
+                const items = response.data.cartItems || [];
+                // Map dữ liệu phẳng
+                itemsRaw = items.map(item => ({
+                    ...item.product,
+                    quantity: item.quantity,
+                    thumbnail: item.product.images && item.product.images.length > 0 
+                        ? item.product.images.find(img => img.isThumbnail)?.imageUrl || item.product.images[0].imageUrl 
+                        : null
+                }));
+            } catch (error) {
+                console.error("Lỗi tải giỏ hàng", error);
+            }
         } else {
-            setCartItems([...cartItems, { ...product, quantity: 1 }]);
+            // Lấy từ LocalStorage
+            itemsRaw = JSON.parse(localStorage.getItem('cart') || '[]');
         }
-        message.success("Đã thêm vào giỏ hàng!");
+
+        // --- LOGIC GỘP TRÙNG LẶP (QUAN TRỌNG) ---
+        // Gom các item có cùng ID lại thành 1 dòng và cộng dồn số lượng
+        const mergedItems = Object.values(
+            itemsRaw.reduce((acc, item) => {
+                if (!acc[item.id]) {
+                    acc[item.id] = { ...item };
+                } else {
+                    acc[item.id].quantity += item.quantity;
+                }
+                return acc;
+            }, {})
+        );
+
+        setCartItems(mergedItems);
     };
 
-    const removeFromCart = (productId) => {
-        setCartItems(cartItems.filter(item => item.id !== productId));
-        message.success("Đã xóa sản phẩm!");
+    useEffect(() => { fetchCart(); }, [isLogin]);
+
+    // --- 2. MERGE LOGIN ---
+    useEffect(() => {
+        const handleAuthChange = async () => {
+            if (localStorage.getItem('token')) {
+                const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+                if (localCart.length > 0) {
+                    try {
+                        const itemsToSend = localCart.map(item => ({ productId: item.id, quantity: item.quantity }));
+                        await api.post('/carts/merge', itemsToSend);
+                        localStorage.removeItem('cart');
+                        message.success("Đã đồng bộ giỏ hàng!");
+                    } catch (error) {}
+                }
+            }
+            fetchCart();
+        };
+        window.addEventListener('auth-change', handleAuthChange);
+        return () => window.removeEventListener('auth-change', handleAuthChange);
+    }, []);
+
+    // --- 3. CÁC HÀM CRUD ---
+    const addToCart = async (product, quantity = 1) => {
+        if (isLogin) {
+            try {
+                await api.post(`/carts/add?productId=${product.id}&quantity=${quantity}`);
+                message.success("Đã thêm vào giỏ!");
+                fetchCart();
+            } catch (e) { message.error("Lỗi thêm giỏ hàng!"); }
+        } else {
+            let temp = [...JSON.parse(localStorage.getItem('cart') || '[]')];
+            const idx = temp.findIndex(p => p.id === product.id);
+            if (idx > -1) temp[idx].quantity += quantity;
+            else temp.push({ ...product, quantity });
+            localStorage.setItem('cart', JSON.stringify(temp));
+            setCartItems(temp); // Cập nhật state ngay
+            fetchCart(); // Gọi lại fetch để chạy qua logic gộp
+            message.success("Đã thêm vào giỏ!");
+        }
     };
 
-    const updateQuantity = (productId, newQuantity) => {
-        if (newQuantity < 1) return; 
-        setCartItems(cartItems.map(item => 
-            item.id === productId ? { ...item, quantity: newQuantity } : item
-        ));
+    const updateQuantity = async (productId, newQuantity) => {
+        if (newQuantity < 1) return;
+        if (isLogin) {
+            await api.put(`/carts/update?productId=${productId}&quantity=${newQuantity}`);
+            fetchCart();
+        } else {
+            const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const newCart = localCart.map(item => item.id === productId ? { ...item, quantity: newQuantity } : item);
+            localStorage.setItem('cart', JSON.stringify(newCart));
+            fetchCart(); // Gọi lại fetch để gộp và set state
+        }
     };
 
-    const clearCart = () => {
-        setCartItems([]);
-        localStorage.removeItem('cart');
+    const removeFromCart = async (productId) => {
+        if (isLogin) {
+            await api.delete(`/carts/remove/${productId}`);
+            fetchCart();
+        } else {
+            const localCart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const newCart = localCart.filter(item => item.id !== productId);
+            localStorage.setItem('cart', JSON.stringify(newCart));
+            fetchCart();
+        }
     };
 
-    const totalAmount = cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const clearCart = async () => {
+        if (isLogin) {
+            await api.delete('/carts/clear');
+            fetchCart();
+        } else {
+            setCartItems([]);
+            localStorage.removeItem('cart');
+        }
+    };
+
+    // Tính tổng tiền an toàn (tránh lỗi undefined)
+    const totalAmount = cartItems.reduce((total, item) => total + ((item.price || 0) * item.quantity), 0);
 
     return (
-        <CartContext.Provider value={{ cartItems, addToCart, removeFromCart, updateQuantity, clearCart, totalAmount }}>
+        <CartContext.Provider value={{ cartItems, addToCart, updateQuantity, removeFromCart, clearCart, fetchCart, totalAmount }}>
             {children}
         </CartContext.Provider>
     );

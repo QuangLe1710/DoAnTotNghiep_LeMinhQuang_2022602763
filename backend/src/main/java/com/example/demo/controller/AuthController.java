@@ -15,14 +15,14 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*") // Cho phép Frontend gọi API
+@CrossOrigin(origins = "*")
 public class AuthController {
 
     @Autowired
     private UserRepository userRepository;
 
     @Autowired
-    private RoleRepository roleRepository; // <-- MỚI: Cần cái này để lấy Role từ DB
+    private RoleRepository roleRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -30,7 +30,7 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
-    // 1. ĐĂNG KÝ
+    // 1. ĐĂNG KÝ (Giữ nguyên)
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -45,13 +45,11 @@ public class AuthController {
         newUser.setPassword(passwordEncoder.encode(user.getPassword()));
         newUser.setFullName(user.getFullName());
         newUser.setEmail(user.getEmail());
-        newUser.setPhone(user.getPhone()); // Lưu thêm SĐT nếu có
+        newUser.setPhone(user.getPhone());
 
-        // --- XỬ LÝ ROLE (Quan trọng) ---
-        // Mặc định đăng ký mới là ROLE_USER
+        // Mặc định đăng ký là ROLE_USER và ACTIVE
         Role userRole = roleRepository.findByName("ROLE_USER")
                 .orElseGet(() -> {
-                    // Nếu trong DB chưa có ROLE_USER thì tạo mới luôn (Self-healing)
                     Role newRole = new Role();
                     newRole.setName("ROLE_USER");
                     newRole.setDescription("Khách hàng");
@@ -61,22 +59,30 @@ public class AuthController {
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         newUser.setRoles(roles);
+        newUser.setStatus(true); // Quan trọng: Mặc định là Active
 
         userRepository.save(newUser);
 
         return ResponseEntity.ok("Đăng ký thành công!");
     }
 
-    // 2. ĐĂNG NHẬP
+    // 2. ĐĂNG NHẬP (CẬP NHẬT LOGIC CHẶN KHÓA)
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
         User user = userRepository.findByUsername(loginData.get("username")).orElse(null);
 
         if (user != null && passwordEncoder.matches(loginData.get("password"), user.getPassword())) {
-            // Tạo Token (JwtUtils mới đã xử lý lấy list roles bên trong rồi)
+
+            // --- [LOGIC MỚI] KIỂM TRA TRẠNG THÁI ---
+            if (Boolean.FALSE.equals(user.getStatus())) {
+                return ResponseEntity.status(403).body("Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin.");
+            }
+            // ---------------------------------------
+
+            // Tạo Token
             String token = jwtUtils.generateToken(user);
 
-            // Chuẩn bị dữ liệu trả về cho Frontend
+            // Lấy danh sách quyền
             List<String> roleNames = user.getRoles().stream()
                     .map(Role::getName)
                     .collect(Collectors.toList());
@@ -85,7 +91,7 @@ public class AuthController {
             response.put("token", token);
             response.put("username", user.getUsername());
             response.put("fullName", user.getFullName());
-            response.put("roles", roleNames); // Trả về list role (VD: ["ROLE_ADMIN"])
+            response.put("roles", roleNames);
 
             return ResponseEntity.ok(response);
         }

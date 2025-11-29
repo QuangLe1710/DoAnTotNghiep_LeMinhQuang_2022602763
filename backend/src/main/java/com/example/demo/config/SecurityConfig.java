@@ -45,21 +45,45 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/products/**").permitAll()
                         .requestMatchers("/api/payment/**").permitAll()
-                        .requestMatchers("/error").permitAll() // <-- QUAN TRỌNG: Cho phép trang lỗi
+                        .requestMatchers("/error").permitAll()
 
                         // Swagger UI
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
 
-                        // 2. ADMIN ENDPOINTS (Phải có quyền ROLE_ADMIN)
-                        // Lưu ý: Trong DB lưu "ROLE_ADMIN" thì hasAuthority phải ghi y hệt
+                        // 2. ORDER API CHO KHÁCH HÀNG (USER & ADMIN ĐỀU DÙNG ĐƯỢC)
+                        // [QUAN TRỌNG] Phải đặt đoạn này TRƯỚC đoạn Admin bên dưới
+                        .requestMatchers(HttpMethod.POST, "/api/orders/place").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/orders/my-orders/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/orders/*/cancel").authenticated()
+
+                        // 3. ADMIN ENDPOINTS
                         .requestMatchers("/api/dashboard/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/products/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/products/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/products/**").hasAuthority("ROLE_ADMIN")
-                        .requestMatchers("/api/orders/**").hasAuthority("ROLE_ADMIN") // Admin quản lý đơn hàng
 
-                        // 3. AUTHENTICATED (Đăng nhập là được, không phân biệt quyền)
-                        .requestMatchers("/api/carts/**").authenticated() // Giỏ hàng cần login
+                        // Admin quản lý tất cả các API order còn lại (duyệt đơn, xem tất cả...)
+                        .requestMatchers("/api/orders/**").hasAuthority("ROLE_ADMIN")
+
+                        // 4. AUTHENTICATED (Các cái còn lại chỉ cần login)
+                        .requestMatchers("/api/carts/**").authenticated()
+
+                        .requestMatchers("/api/vouchers/active").permitAll() // Hoặc .authenticated() tùy bạn
+                        .requestMatchers("/api/vouchers/check").authenticated() // API check mã thì cần login
+
+                        .requestMatchers("/api/dashboard/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/users").hasAuthority("ROLE_ADMIN") // <--- MỚI: Xem list user
+                        .requestMatchers(HttpMethod.PUT, "/api/users/*/status").hasAuthority("ROLE_ADMIN") // <--- MỚI: Khóa user
+
+                        // --- QUẢN LÝ DANH MỤC & THƯƠNG HIỆU ---
+                        // 1. Cho phép xem (Public)
+                        .requestMatchers(HttpMethod.GET, "/api/brands/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+
+                        // 2. Thêm/Sửa/Xóa (Admin)
+                        .requestMatchers("/api/brands/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/api/categories/**").hasAuthority("ROLE_ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

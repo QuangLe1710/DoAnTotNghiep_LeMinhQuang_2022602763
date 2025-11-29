@@ -13,6 +13,12 @@ import Cart from './pages/Cart';
 import AdminOrder from './pages/AdminOrder';
 import OrderHistory from './pages/OrderHistory';
 import PaymentSuccess from './pages/PaymentSuccess';
+import AdminVoucher from './pages/AdminVoucher'; // Import file mới
+import VoucherHub from './pages/VoucherHub';  
+import Profile from './pages/Profile';
+import AdminUser from './pages/AdminUser';
+import AdminBrand from './pages/AdminBrand';
+import AdminCategory from './pages/AdminCategory';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
@@ -51,6 +57,8 @@ function App() {
             <Route path="cart" element={<Cart />} /> 
             <Route path="checkout" element={<Checkout />} />
             <Route path="history" element={<OrderHistory />} />
+            <Route path="vouchers" element={<VoucherHub />} />
+            <Route path="profile" element={<Profile />} />
         </Route>
 
         <Route path="/login" element={<Login />} />
@@ -64,6 +72,10 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<AdminProduct />} />
             <Route path="orders" element={<AdminOrder />} />
+            <Route path="vouchers" element={<AdminVoucher />} />
+            <Route path="users" element={<AdminUser />} />
+            <Route path="brands" element={<AdminBrand />} />
+            <Route path="categories" element={<AdminCategory />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

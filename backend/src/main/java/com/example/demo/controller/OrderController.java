@@ -1,116 +1,97 @@
-//package com.example.demo.controller;
-//
-//import com.example.demo.entity.Order;
-//import com.example.demo.entity.OrderDetail;
-//import com.example.demo.repository.OrderRepository;
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.data.domain.Sort;
-//import org.springframework.http.ResponseEntity;
-//import org.springframework.web.bind.annotation.*;
-//
-//import java.util.Map;
-//import java.util.Optional;
-//
-//@RestController
-//@RequestMapping("/api/orders")
-//@CrossOrigin(origins = "*")
-//public class OrderController {
-//
-//    @Autowired
-//    private OrderRepository orderRepository;
-//
-////    @PostMapping("/place")
-////    public ResponseEntity<?> placeOrder(@RequestBody Order order) {
-////        try {
-////            // Thiết lập quan hệ 2 chiều để JPA lưu được cả OrderDetail
-////            if (order.getOrderDetails() != null) {
-////                for (OrderDetail detail : order.getOrderDetails()) {
-////                    detail.setOrder(order);
-////                }
-////            }
-////            orderRepository.save(order);
-////            return ResponseEntity.ok("Đặt hàng thành công");
-////        } catch (Exception e) {
-////            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
-////        }
-////    }
-//    @PostMapping("/place")
-//    public ResponseEntity<?> placeOrder(@RequestBody Order order) {
-//        try {
-//            // ... (giữ nguyên logic thiết lập orderDetails) ...
-//            if (order.getOrderDetails() != null) {
-//                for (OrderDetail detail : order.getOrderDetails()) {
-//                    detail.setOrder(order);
-//                }
-//            }
-//            Order savedOrder = orderRepository.save(order); // Lưu và lấy lại object đã lưu
-//            return ResponseEntity.ok(savedOrder); // Trả về cả cục Order (có ID) thay vì string
-//        } catch (Exception e) {
-//            return ResponseEntity.badRequest().body("Lỗi: " + e.getMessage());
-//        }
-//    }
-//
-//
-//    // API Lấy danh sách tất cả đơn hàng (Sắp xếp mới nhất lên đầu)
-//    // Sửa lại hàm getAllOrders cũ (nếu có) hoặc thêm mới
-//    @GetMapping
-//    public ResponseEntity<?> getAllOrders() {
-//        // Sort giảm dần theo ID để đơn mới nhất hiện lên trên
-//        return ResponseEntity.ok(orderRepository.findAll(Sort.by(Sort.Direction.DESC, "id")));
-//    }
-//
-//    // API Cập nhật trạng thái đơn hàng (VD: Duyệt đơn)
-//    @PutMapping("/{id}/status")
-//    public ResponseEntity<?> updateOrderStatus(@PathVariable Long id, @RequestBody Map<String, String> body) {
-//        Order order = orderRepository.findById(id).orElse(null);
-//        if (order == null) return ResponseEntity.notFound().build();
-//
-//        String newStatus = body.get("status");
-//        order.setStatus(newStatus);
-//        orderRepository.save(order);
-//        return ResponseEntity.ok("Cập nhật trạng thái thành công!");
-//    }
-//
-//    // API xem lịch sử đơn hàng của User (Dựa vào username gửi lên)
-//    @GetMapping("/my-orders/{username}")
-//    public ResponseEntity<?> getMyOrders(@PathVariable String username) {
-//        return ResponseEntity.ok(orderRepository.findByUsernameOrderByIdDesc(username));
-//    }
-//
-//    // API cho KHÁCH HÀNG tự hủy đơn (CÓ KÈM LÝ DO)
-//    @PutMapping("/{id}/cancel")
-//    public ResponseEntity<?> cancelOrder(@PathVariable Long id, @RequestBody Map<String, String> body) {
-//        Optional<Order> orderOptional = orderRepository.findById(id);
-//
-//        if (orderOptional.isEmpty()) {
-//            return ResponseEntity.notFound().build();
-//        }
-//
-//        Order order = orderOptional.get();
-//
-//        if ("PENDING".equals(order.getStatus())) {
-//            order.setStatus("CANCELLED");
-//
-//            // Lưu lý do hủy gửi từ Frontend lên
-//            String reason = body.get("reason");
-//            order.setCancelReason(reason);
-//
-//            orderRepository.save(order);
-//            return ResponseEntity.ok("Đã hủy đơn hàng thành công!");
-//        } else {
-//            return ResponseEntity.badRequest().body("Không thể hủy đơn hàng khi đã được duyệt hoặc đang giao!");
-//        }
-//    }
-//
-//    // API Đếm số đơn đang chờ duyệt (Dùng để thông báo)
-//    @GetMapping("/count-pending")
-//    public ResponseEntity<?> getPendingCount() {
-//        return ResponseEntity.ok(orderRepository.countByStatus("PENDING"));
-//    }
-//
-//    // API lấy danh sách các đơn đang chờ duyệt (Dùng cho Notification Dropdown)
-//    @GetMapping("/pending-orders")
-//    public ResponseEntity<?> getPendingOrders() {
-//        return ResponseEntity.ok(orderRepository.findByStatusOrderByIdDesc("PENDING"));
-//    }
-//}
+package com.example.demo.controller;
+
+import com.example.demo.dto.OrderRequestDTO;
+import com.example.demo.entity.Order;
+import com.example.demo.service.OrderService;
+import jakarta.servlet.http.HttpServletRequest; // Import cái này
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/orders")
+@RequiredArgsConstructor
+@CrossOrigin("*")
+public class OrderController {
+
+    @Autowired
+    private OrderService orderService; // Dùng final để Lombok tự inject (bỏ @Autowired)
+
+    // Helper lấy username từ Token
+    private String getCurrentUsername() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
+    // 1. [USER] API Đặt hàng
+    @PostMapping("/place")
+    public ResponseEntity<?> placeOrder(@RequestBody OrderRequestDTO request) {
+        try {
+            Order order = orderService.placeOrder(getCurrentUsername(), request);
+            return ResponseEntity.ok(order);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 2. [USER] Xem lịch sử đơn hàng
+    @GetMapping("/my-orders/{username}")
+    public ResponseEntity<?> getMyOrders(@PathVariable String username, HttpServletRequest request) { // <--- THÊM 'request' VÀO ĐÂY
+
+        // Kiểm tra bảo mật: Chỉ cho phép xem đơn của chính mình (trừ khi là Admin)
+        String currentLoginUser = getCurrentUsername();
+
+        // Nếu user đang login KHÁC user muốn xem VÀ user đang login không phải ADMIN -> Chặn
+        if (!currentLoginUser.equals(username) && !request.isUserInRole("ROLE_ADMIN")) {
+            return ResponseEntity.status(403).body("Không có quyền xem đơn hàng của người khác!");
+        }
+
+        return ResponseEntity.ok(orderService.getMyOrders(username));
+    }
+
+    // 3. [ADMIN] Lấy danh sách tất cả đơn hàng
+    @GetMapping
+    public ResponseEntity<?> getAllOrders(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+        Pageable pageable = PageRequest.of(page, limit, Sort.by("id").descending());
+        Page<Order> orderPage = orderService.getAllOrders(pageable);
+        return ResponseEntity.ok(orderPage);
+    }
+
+    // 4. [ADMIN] Đổi trạng thái đơn hàng
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> updateStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body
+    ) {
+        String newStatus = body.get("status");
+        try {
+            Order updatedOrder = orderService.updateOrderStatus(id, newStatus);
+            return ResponseEntity.ok(updatedOrder);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // --- 5. [USER] HỦY ĐƠN HÀNG ---
+    // PUT /api/orders/{id}/cancel
+    @PutMapping("/{id}/cancel")
+    public ResponseEntity<?> cancelOrder(@PathVariable Long id, @RequestBody Map<String, String> body) {
+        String reason = body.get("reason");
+        try {
+            orderService.cancelOrder(id, reason);
+            return ResponseEntity.ok("Hủy đơn hàng thành công!");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+}

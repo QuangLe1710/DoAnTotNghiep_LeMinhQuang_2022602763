@@ -125,6 +125,7 @@ public class CartService {
     }
 
     // 6. [QUAN TRỌNG] MERGE GIỎ HÀNG (LocalStorage -> Database)
+    // 6. [QUAN TRỌNG] MERGE GIỎ HÀNG (SỬA LẠI)
     // Hàm này sẽ được gọi khi User vừa đăng nhập
     @Transactional
     public void mergeCart(String username, List<CartItemRequest> localItems) {
@@ -135,28 +136,30 @@ public class CartService {
         for (CartItemRequest localItem : localItems) {
             Product product = productRepository.findById(localItem.getProductId()).orElse(null);
             if (product != null) {
-                // Kiểm tra xem trong DB đã có chưa
+                // Kiểm tra xem trong DB đã có chưa (Tìm trong list đang load)
                 Optional<CartItem> dbItem = cart.getCartItems().stream()
                         .filter(item -> item.getProduct().getId().equals(product.getId()))
                         .findFirst();
 
                 if (dbItem.isPresent()) {
-                    // Nếu DB có, Local cũng có -> Cộng dồn? Hay lấy cái nào lớn hơn?
-                    // Thường thì sẽ cộng dồn hoặc ưu tiên Local mới nhất.
-                    // Ở đây mình chọn: Cộng dồn
+                    // Nếu có rồi -> Cộng dồn
                     CartItem item = dbItem.get();
                     item.setQuantity(item.getQuantity() + localItem.getQuantity());
                     cartItemRepository.save(item);
                 } else {
-                    // Nếu DB chưa có -> Thêm mới
+                    // Nếu chưa có -> Thêm mới
                     CartItem newItem = new CartItem();
                     newItem.setCart(cart);
                     newItem.setProduct(product);
                     newItem.setQuantity(localItem.getQuantity());
                     cartItemRepository.save(newItem);
+
+                    // --- CỰC KỲ QUAN TRỌNG: Thêm ngay vào list bộ nhớ để vòng lặp sau thấy nó ---
+                    cart.getCartItems().add(newItem);
                 }
             }
         }
+        cartRepository.save(cart);
     }
 
     // Class phụ để nhận dữ liệu merge từ Frontend

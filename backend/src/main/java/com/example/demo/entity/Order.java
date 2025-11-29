@@ -32,6 +32,9 @@ public class Order {
     @Column(name = "shipping_name")
     private String shippingName;
 
+    @Column(name = "cancel_reason")
+    private String cancelReason;
+
     private String paymentMethod; // COD, VN_PAY
     private String paymentStatus; // PAID, UNPAID
     private String status; // PENDING, SHIPPING...
@@ -153,5 +156,13 @@ public class Order {
 
     public void setOrderHistories(List<OrderHistory> orderHistories) {
         this.orderHistories = orderHistories;
+    }
+
+    public String getCancelReason() {
+        return cancelReason;
+    }
+
+    public void setCancelReason(String cancelReason) {
+        this.cancelReason = cancelReason;
     }
 }

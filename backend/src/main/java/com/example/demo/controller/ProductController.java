@@ -128,7 +128,7 @@ public class ProductController {
         }
     }
 
-    // --- HÀM CHUYỂN ĐỔI ENTITY -> DTO ---
+    // --- HÀM CHUYỂN ĐỔI ENTITY -> DTO (PHIÊN BẢN ĐẦY ĐỦ) ---
     private ProductResponseDTO convertToDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
@@ -136,6 +136,21 @@ public class ProductController {
         dto.setPrice(product.getPrice());
         dto.setSalePrice(product.getSalePrice());
         dto.setStockQuantity(product.getStockQuantity());
+        dto.setWarrantyPeriod(product.getWarrantyPeriod());
+        dto.setViewCount(product.getViewCount());
+
+        // Map mô tả
+        dto.setDescription(product.getDescription());
+        dto.setShortDescription(product.getShortDescription());
+
+        // Map cấu hình
+        dto.setCpu(product.getCpu());
+        dto.setRam(product.getRam());
+        dto.setStorage(product.getStorage());
+        dto.setScreen(product.getScreen());
+        dto.setGpu(product.getGpu());
+        dto.setBattery(product.getBattery());
+        dto.setWeight(product.getWeight());
 
         // Lấy tên Hãng và Danh mục an toàn
         if (product.getBrand() != null) {
@@ -147,13 +162,11 @@ public class ProductController {
 
         // Xử lý danh sách ảnh
         if (product.getImages() != null && !product.getImages().isEmpty()) {
-            // Lấy list URL
             List<String> imageUrls = product.getImages().stream()
                     .map(ProductImage::getImageUrl)
                     .collect(Collectors.toList());
             dto.setImages(imageUrls);
 
-            // Lấy ảnh thumbnail (cái nào isThumbnail=true thì lấy, ko thì lấy cái đầu)
             String thumb = product.getImages().stream()
                     .filter(ProductImage::getIsThumbnail)
                     .map(ProductImage::getImageUrl)
