@@ -37,11 +37,17 @@ const Home = () => {
     useEffect(() => {
         const fetchProducts = async () => {
             try {
-                const response = await api.get('/products');
-                setProducts(response.data);
-                setFilteredProducts(response.data);
+                // Gọi API lấy tất cả (hoặc phân trang trang đầu tiên)
+                const response = await api.get('/products?page=0&limit=100'); // Lấy nhiều chút để hiện trang chủ
+                
+                // Kiểm tra xem response.data có phải array không (trường hợp API cũ) hay là object (API mới)
+                const productList = Array.isArray(response.data) ? response.data : response.data.products;
+                
+                setProducts(productList || []); // Fallback mảng rỗng nếu null
+                setFilteredProducts(productList || []);
             } catch (error) {
                 message.error("Lỗi tải sản phẩm!");
+                setProducts([]); // Set mảng rỗng để tránh lỗi map
             } finally {
                 setLoading(false);
             }

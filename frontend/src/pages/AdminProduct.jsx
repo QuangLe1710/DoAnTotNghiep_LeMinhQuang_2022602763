@@ -1,40 +1,88 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Button, Modal, Form, Input, Upload, message, Space, InputNumber, Select, Typography, Tag, Image } from 'antd';
-import { PlusOutlined, UploadOutlined, DeleteOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
 import api from '../services/api';
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 const AdminProduct = () => {
+    // 1. STATE QUẢN LÝ DỮ LIỆU
     const [products, setProducts] = useState([]);
-    const [brands, setBrands] = useState([]); // Lưu danh sách Hãng từ API
-    const [categories, setCategories] = useState([]); // Lưu danh sách Danh mục từ API
-    
-    const [isModalOpen, setIsModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [editingProduct, setEditingProduct] = useState(null); 
-    const [form] = Form.useForm();
+    
+    // State phân trang & tìm kiếm
+    const [pagination, setPagination] = useState({
+        current: 1,
+        pageSize: 5,
+        total: 0,
+    });
     const [searchText, setSearchText] = useState('');
 
-    // 1. Load dữ liệu (Sản phẩm, Hãng, Danh mục)
-    const fetchData = async () => {
+    // State dữ liệu danh mục (Dropdown)
+    const [brands, setBrands] = useState([]);
+    const [categories, setCategories] = useState([]);
+    
+    // State Modal & Form
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingProduct, setEditingProduct] = useState(null); 
+    const [form] = Form.useForm();
+
+    // 2. HÀM LOAD DỮ LIỆU TỪ SERVER (QUAN TRỌNG)
+    const fetchProducts = async (page = 1, pageSize = 5, search = '') => {
+        setLoading(true);
         try {
-            const [productsRes, brandsRes, categoriesRes] = await Promise.all([
-                api.get('/products'),
-                api.get('/products/brands'),
-                api.get('/products/categories')
-            ]);
-            setProducts(productsRes.data);
-            setBrands(brandsRes.data);
-            setCategories(categoriesRes.data);
+            // Gọi API phân trang Backend (Lưu ý: Backend page bắt đầu từ 0)
+            const response = await api.get(`/products?page=${page - 1}&limit=${pageSize}&search=${search}`);
+            
+            // Cập nhật bảng và bộ phân trang
+            setProducts(response.data.products);
+            setPagination({
+                current: page,
+                pageSize: pageSize,
+                total: response.data.totalItems, 
+            });
         } catch (error) {
-            message.error("Không thể tải dữ liệu!");
+            // Nếu API phân trang chưa có, fallback về API thường (để code không chết)
+            try {
+                const resFallback = await api.get('/products');
+                setProducts(resFallback.data);
+            } catch (e) {
+                message.error("Lỗi tải danh sách sản phẩm!");
+            }
+        } finally {
+            setLoading(false);
         }
     };
 
-    useEffect(() => { fetchData(); }, []);
+    // Load dữ liệu lần đầu (Brands, Categories + Trang 1 sản phẩm)
+    useEffect(() => {
+        const fetchMeta = async () => {
+            try {
+                const [bRes, cRes] = await Promise.all([
+                    api.get('/products/brands'),
+                    api.get('/products/categories')
+                ]);
+                setBrands(bRes.data);
+                setCategories(cRes.data);
+            } catch (error) {}
+        };
+        fetchMeta();
+        fetchProducts(1, 5, '');
+    }, []);
 
+    // 3. XỬ LÝ SỰ KIỆN BẢNG (CHUYỂN TRANG)
+    const handleTableChange = (newPagination) => {
+        fetchProducts(newPagination.current, newPagination.pageSize, searchText);
+    };
+
+    // Xử lý tìm kiếm
+    const onSearch = (value) => {
+        setSearchText(value);
+        fetchProducts(1, pagination.pageSize, value); // Reset về trang 1 khi tìm kiếm
+    };
+
+    // 4. CÁC HÀM CRUD (THÊM / SỬA / XÓA)
     const handleAddNew = () => {
         setEditingProduct(null);
         form.resetFields();
@@ -46,28 +94,26 @@ const AdminProduct = () => {
         // Map dữ liệu cũ vào Form
         form.setFieldsValue({
             ...record,
-            brandId: record.brand?.id || record.brandId, // Lấy ID của Brand
-            categoryId: record.category?.id || record.categoryId, // Lấy ID của Category
-            files: [] // Reset ô upload ảnh
+            brandId: record.brand?.id || record.brandId,
+            categoryId: record.category?.id || record.categoryId,
+            files: [] // Reset ô upload
         });
         setIsModalOpen(true);
     };
 
-    // --- XỬ LÝ SUBMIT FORM ---
     const handleFinish = async (values) => {
         setLoading(true);
         try {
             const formData = new FormData();
-            // 1. Thông tin cơ bản
+            // Map dữ liệu form vào FormData
             formData.append('name', values.name);
             formData.append('price', values.price);
             formData.append('salePrice', values.salePrice || 0);
             formData.append('stockQuantity', values.stockQuantity);
             formData.append('warrantyPeriod', values.warrantyPeriod);
             formData.append('description', values.description || '');
-            formData.append('shortDescription', values.shortDescription || '');
-
-            // 2. Thông số kỹ thuật (Specs)
+            
+            // Specs
             formData.append('cpu', values.cpu || '');
             formData.append('ram', values.ram || '');
             formData.append('storage', values.storage || '');
@@ -76,11 +122,11 @@ const AdminProduct = () => {
             formData.append('battery', values.battery || '');
             formData.append('weight', values.weight || 0);
 
-            // 3. ID Quan hệ (Brand & Category)
+            // IDs
             formData.append('brandId', values.brandId);
             formData.append('categoryId', values.categoryId);
 
-            // 4. Xử lý nhiều ảnh
+            // Files ảnh
             if (values.files && values.files.fileList) {
                 values.files.fileList.forEach(file => {
                     if (file.originFileObj) {
@@ -90,24 +136,23 @@ const AdminProduct = () => {
             }
 
             if (editingProduct) {
-                // API Update
                 await api.put(`/products/update/${editingProduct.id}`, formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
                 message.success("Cập nhật thành công!");
             } else {
-                // API Add
                 await api.post('/products/add', formData, {
                     headers: { 'Content-Type': 'multipart/form-data' },
                 });
-                message.success("Thêm sản phẩm thành công!");
+                message.success("Thêm mới thành công!");
             }
 
             setIsModalOpen(false);
-            fetchData(); 
+            // Load lại đúng trang hiện tại
+            fetchProducts(pagination.current, pagination.pageSize, searchText); 
         } catch (error) {
             console.error(error);
-            message.error("Có lỗi xảy ra: " + (error.response?.data || error.message));
+            message.error("Lỗi: " + (error.response?.data || error.message));
         } finally {
             setLoading(false);
         }
@@ -122,52 +167,41 @@ const AdminProduct = () => {
                 try {
                     await api.delete(`/products/${id}`);
                     message.success("Đã xóa!");
-                    fetchData();
+                    // Nếu xóa hết dòng ở trang cuối, lùi về trang trước
+                    if (products.length === 1 && pagination.current > 1) {
+                        fetchProducts(pagination.current - 1, pagination.pageSize, searchText);
+                    } else {
+                        fetchProducts(pagination.current, pagination.pageSize, searchText);
+                    }
                 } catch (error) { message.error("Lỗi xóa!"); }
             }
         });
     };
 
+    // 5. CẤU HÌNH CỘT BẢNG
     const columns = [
         { title: 'ID', dataIndex: 'id', width: 60, align: 'center' },
         { 
             title: 'Ảnh',
-            dataIndex: 'thumbnail', // Backend trả về field thumbnail
-            render: (src) => src ? <Image src={src} width={50} height={50} style={{objectFit: 'cover', borderRadius: 4}} /> : <Tag>No Image</Tag>
+            dataIndex: 'thumbnail', // Backend DTO trả về thumbnail
+            align: 'center',
+            render: (src) => src ? <Image src={src} width={50} height={50} style={{objectFit: 'cover', borderRadius: 4}} /> : <Tag>No Img</Tag>
         },
-        { 
-            title: 'Tên Laptop', 
-            dataIndex: 'name',
-            filterDropdown: ({ setSelectedKeys, selectedKeys, confirm }) => (
-                <Input.Search
-                    placeholder="Tìm tên..."
-                    value={selectedKeys[0]}
-                    onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-                    onSearch={() => confirm()}
-                    style={{ display: 'block' }}
-                />
-            ),
-            filterIcon: <SearchOutlined />,
-            onFilter: (value, record) => record.name.toLowerCase().includes(value.toLowerCase()),
-        },
+        { title: 'Tên Laptop', dataIndex: 'name' },
         { 
             title: 'Giá bán', dataIndex: 'price', 
-            render: (p) => <span style={{color: '#d4380d', fontWeight: 'bold'}}>{p?.toLocaleString()} đ</span>,
-            sorter: (a, b) => a.price - b.price
+            render: (p) => <span style={{color: '#d4380d', fontWeight: 'bold'}}>{p?.toLocaleString()}</span>,
         },
         { 
-            title: 'Hãng', 
-            dataIndex: 'brandName', // Dùng brandName từ DTO
-            filters: brands.map(b => ({ text: b.name, value: b.name })),
-            onFilter: (value, record) => record.brandName === value,
+            title: 'Hãng', dataIndex: 'brandName',
+            render: (text) => <Tag color="blue">{text}</Tag>
         },
         { 
-            title: 'Kho', 
-            dataIndex: 'stockQuantity',
+            title: 'Kho', dataIndex: 'stockQuantity', align: 'center',
             render: (q) => q > 0 ? <Tag color="green">{q}</Tag> : <Tag color="red">Hết</Tag>
         },
         {
-            title: 'Hành động',
+            title: 'Hành động', align: 'center',
             render: (_, record) => (
                 <Space>
                     <Button icon={<EditOutlined />} type="primary" ghost onClick={() => handleEdit(record)} />
@@ -179,6 +213,7 @@ const AdminProduct = () => {
 
     return (
         <div>
+            {/* Header + Nút Thêm */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                 <Typography.Title level={3} style={{ margin: 0 }}>Quản lý Kho Hàng</Typography.Title>
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleAddNew} size="large">
@@ -186,8 +221,36 @@ const AdminProduct = () => {
                 </Button>
             </div>
 
-            <Table columns={columns} dataSource={products} rowKey="id" bordered pagination={{ pageSize: 6 }} />
+            {/* Thanh Tìm kiếm Server-side */}
+            <Input.Search 
+                placeholder="Tìm tên sản phẩm..." 
+                allowClear
+                enterButton="Tìm kiếm"
+                size="middle"
+                style={{ marginBottom: 16, maxWidth: 400 }} 
+                onSearch={onSearch}
+            />
 
+            {/* Bảng Dữ liệu */}
+            <Table 
+                columns={columns} 
+                dataSource={products} 
+                rowKey="id" 
+                bordered 
+                loading={loading}
+                // Cấu hình phân trang
+                pagination={{ 
+                    current: pagination.current,
+                    pageSize: pagination.pageSize,
+                    total: pagination.total,
+                    showTotal: (total) => `Tổng ${total} sản phẩm`,
+                    showSizeChanger: true,
+                    pageSizeOptions: ['5', '10', '20']
+                }} 
+                onChange={handleTableChange} // Sự kiện bấm chuyển trang
+            />
+
+            {/* Modal Form */}
             <Modal 
                 title={editingProduct ? "Cập nhật sản phẩm" : "Nhập hàng mới"} 
                 open={isModalOpen} 
@@ -200,20 +263,16 @@ const AdminProduct = () => {
                     <Form.Item name="name" label="Tên sản phẩm" rules={[{ required: true }]}><Input /></Form.Item>
                     
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                        {/* BRAND ID - Load động từ API */}
                         <Form.Item name="brandId" label="Hãng sản xuất" rules={[{ required: true }]}>
                             <Select placeholder="Chọn hãng">
                                 {brands.map(b => <Option key={b.id} value={b.id}>{b.name}</Option>)}
                             </Select>
                         </Form.Item>
-
-                        {/* CATEGORY ID - Load động từ API */}
                         <Form.Item name="categoryId" label="Danh mục" rules={[{ required: true }]}>
                             <Select placeholder="Chọn danh mục">
                                 {categories.map(c => <Option key={c.id} value={c.id}>{c.name}</Option>)}
                             </Select>
                         </Form.Item>
-
                         <Form.Item name="stockQuantity" label="Số lượng nhập" rules={[{ required: true }]}>
                             <InputNumber style={{ width: '100%' }} min={0} />
                         </Form.Item>

@@ -13,6 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import java.util.HashMap;
+import java.util.Map;
 
 import java.io.IOException;
 import java.util.List;
@@ -33,14 +39,42 @@ public class ProductController {
     private CategoryService categoryService;
 
     // 1. Lấy danh sách (Trả về DTO)
+//    @GetMapping
+//    public ResponseEntity<List<ProductResponseDTO>> getAll() {
+//        List<Product> products = productService.getAllProducts();
+//        // Convert List<Entity> -> List<DTO>
+//        List<ProductResponseDTO> dtos = products.stream()
+//                .map(this::convertToDTO)
+//                .collect(Collectors.toList());
+//        return ResponseEntity.ok(dtos);
+//    }
+
+    // 1. Lấy danh sách (NÂNG CẤP: Phân trang + Tìm kiếm)
     @GetMapping
-    public ResponseEntity<List<ProductResponseDTO>> getAll() {
-        List<Product> products = productService.getAllProducts();
+    public ResponseEntity<?> getAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "5") int limit,
+            @RequestParam(required = false) String search
+    ) {
+        // Tạo đối tượng phân trang (Sắp xếp theo ID giảm dần để thấy mới nhất)
+        Pageable pageable = PageRequest.of(page, limit, Sort.by("id").descending());
+
+        // Gọi Service
+        Page<Product> productPage = productService.getProducts(search, pageable);
+
         // Convert List<Entity> -> List<DTO>
-        List<ProductResponseDTO> dtos = products.stream()
+        List<ProductResponseDTO> dtos = productPage.getContent().stream()
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
+
+        // Đóng gói dữ liệu trả về chuẩn cho Frontend
+        Map<String, Object> response = new HashMap<>();
+        response.put("products", dtos);
+        response.put("currentPage", productPage.getNumber());
+        response.put("totalItems", productPage.getTotalElements());
+        response.put("totalPages", productPage.getTotalPages());
+
+        return ResponseEntity.ok(response);
     }
 
     // 2. Lấy chi tiết

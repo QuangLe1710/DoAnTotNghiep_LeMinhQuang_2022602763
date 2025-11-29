@@ -14,6 +14,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,6 +44,14 @@ public class ProductService {
     // 1. LẤY TẤT CẢ SẢN PHẨM
     public List<Product> getAllProducts() {
         return productRepository.findAll();
+    }
+
+    // 1. LẤY SẢN PHẨM (CÓ PHÂN TRANG & TÌM KIẾM)
+    public Page<Product> getProducts(String keyword, Pageable pageable) {
+        if (keyword != null && !keyword.isEmpty()) {
+            return productRepository.findByNameContainingIgnoreCase(keyword, pageable);
+        }
+        return productRepository.findAll(pageable);
     }
 
     // 2. LẤY CHI TIẾT SẢN PHẨM
