@@ -1,133 +1,144 @@
 package com.example.demo.controller;
 
+import com.example.demo.dto.ProductDTO;
+import com.example.demo.dto.ProductResponseDTO; // Import DTO phản hồi
+import com.example.demo.entity.Brand;
+import com.example.demo.entity.Category;
 import com.example.demo.entity.Product;
-import com.example.demo.repository.ProductRepository;
-import com.example.demo.service.CloudinaryService; // Import service upload ảnh cũ của bạn
+import com.example.demo.entity.ProductImage;
+import com.example.demo.service.BrandService;
+import com.example.demo.service.CategoryService;
+import com.example.demo.service.ProductService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
-@CrossOrigin(origins = "*")
+@RequiredArgsConstructor
+@CrossOrigin("*")
 public class ProductController {
+    @Autowired
+    private ProductService productService;
 
     @Autowired
-    private ProductRepository productRepository;
+    private BrandService brandService;
 
     @Autowired
-    private CloudinaryService cloudinaryService;
+    private CategoryService categoryService;
 
-    // 1. LẤY DANH SÁCH SẢN PHẨM (Cho trang chủ & Admin)
+    // 1. Lấy danh sách (Trả về DTO)
     @GetMapping
-    public List<Product> getAllProducts() {
-        return productRepository.findAll();
+    public ResponseEntity<List<ProductResponseDTO>> getAll() {
+        List<Product> products = productService.getAllProducts();
+        // Convert List<Entity> -> List<DTO>
+        List<ProductResponseDTO> dtos = products.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(dtos);
     }
 
-    // 2. LẤY CHI TIẾT 1 SẢN PHẨM (Cho trang Detail)
+    // 2. Lấy chi tiết
     @GetMapping("/{id}")
-    public ResponseEntity<Product> getProductById(@PathVariable Long id) {
-        Optional<Product> product = productRepository.findById(id);
-        return product.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
-    }
-
-    // 3. THÊM SẢN PHẨM MỚI (Có upload ảnh)
-    @PostMapping("/add")
-    public ResponseEntity<?> addProduct(
-            @RequestParam("name") String name,
-            @RequestParam("price") Double price,
-            @RequestParam("brand") String brand,
-            @RequestParam("cpu") String cpu,
-            @RequestParam("ram") String ram,
-            @RequestParam("storage") String storage,
-            @RequestParam("screen") String screen,
-            @RequestParam("description") String description,
-            @RequestParam(value = "file", required = false) MultipartFile file // Ảnh có thể null
-    ) {
+    public ResponseEntity<?> getProductById(@PathVariable Long id) {
         try {
-            Product product = new Product();
-            product.setName(name);
-            product.setPrice(price);
-            product.setBrand(brand);
-            product.setCpu(cpu);
-            product.setRam(ram);
-            product.setStorage(storage);
-            product.setScreen(screen);
-            product.setDescription(description);
-
-            // Nếu có gửi ảnh thì upload lên Cloudinary
-            if (file != null && !file.isEmpty()) {
-                String imageUrl = cloudinaryService.uploadImage(file);
-                product.setImage(imageUrl);
-            }
-
-            Product savedProduct = productRepository.save(product);
-            return ResponseEntity.ok(savedProduct);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Lỗi upload ảnh: " + e.getMessage());
+            Product product = productService.getProductById(id);
+            return ResponseEntity.ok(convertToDTO(product)); // Trả về DTO
+        } catch (RuntimeException e) {
+            return ResponseEntity.notFound().build();
         }
     }
 
-    // 4. XÓA SẢN PHẨM
+    // 3. Thêm mới
+    @PostMapping("/add")
+    public ResponseEntity<?> createProduct(@ModelAttribute ProductDTO productDTO) {
+        try {
+            Product newProduct = productService.createProduct(productDTO);
+            // Convert Entity vừa tạo sang DTO để trả về Frontend
+            return ResponseEntity.ok(convertToDTO(newProduct));
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body("Lỗi upload ảnh: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Lỗi dữ liệu: " + e.getMessage());
+        }
+    }
+
+    // 4. CẬP NHẬT SẢN PHẨM (MỚI)
+    // Method: PUT /api/products/update/{id}
+    @PutMapping("/update/{id}")
+    public ResponseEntity<?> updateProduct(@PathVariable Long id, @ModelAttribute ProductDTO productDTO) {
+        try {
+            Product updatedProduct = productService.updateProduct(id, productDTO);
+            return ResponseEntity.ok(convertToDTO(updatedProduct)); // Trả về DTO chuẩn
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body("Lỗi upload ảnh: " + e.getMessage());
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Lỗi dữ liệu: " + e.getMessage());
+        }
+    }
+
+    // 5. XÓA SẢN PHẨM (MỚI)
+    // Method: DELETE /api/products/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
-        if (productRepository.existsById(id)) {
-            productRepository.deleteById(id);
-            return ResponseEntity.ok("Xóa thành công!");
+        try {
+            productService.deleteProduct(id);
+            return ResponseEntity.ok("Xóa thành công sản phẩm ID: " + id);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body("Lỗi khi xóa: " + e.getMessage());
         }
-        return ResponseEntity.notFound().build();
     }
 
-    // 5. SỬA SẢN PHẨM (UPDATE)
-    @PutMapping("/update/{id}")
-    public ResponseEntity<?> updateProduct(
-            @PathVariable Long id,
-            @RequestParam("name") String name,
-            @RequestParam("price") Double price,
-            @RequestParam("brand") String brand,
-            @RequestParam("cpu") String cpu,
-            @RequestParam("ram") String ram,
-            @RequestParam("storage") String storage,
-            @RequestParam("screen") String screen,
-            @RequestParam("description") String description,
-            @RequestParam(value = "file", required = false) MultipartFile file // Ảnh là tùy chọn
-    ) {
-        try {
-            Optional<Product> productOptional = productRepository.findById(id);
-            if (productOptional.isEmpty()) {
-                return ResponseEntity.notFound().build();
-            }
+    // --- HÀM CHUYỂN ĐỔI ENTITY -> DTO ---
+    private ProductResponseDTO convertToDTO(Product product) {
+        ProductResponseDTO dto = new ProductResponseDTO();
+        dto.setId(product.getId());
+        dto.setName(product.getName());
+        dto.setPrice(product.getPrice());
+        dto.setSalePrice(product.getSalePrice());
+        dto.setStockQuantity(product.getStockQuantity());
 
-            Product product = productOptional.get();
-
-            // Cập nhật thông tin văn bản
-            product.setName(name);
-            product.setPrice(price);
-            product.setBrand(brand);
-            product.setCpu(cpu);
-            product.setRam(ram);
-            product.setStorage(storage);
-            product.setScreen(screen);
-            product.setDescription(description);
-
-            // Logic xử lý ảnh: Chỉ upload nếu có file mới được gửi lên
-            if (file != null && !file.isEmpty()) {
-                String imageUrl = cloudinaryService.uploadImage(file);
-                product.setImage(imageUrl);
-            }
-            // Nếu file = null thì giữ nguyên product.getImage() cũ, không làm gì cả
-
-            Product updatedProduct = productRepository.save(product);
-            return ResponseEntity.ok(updatedProduct);
-
-        } catch (IOException e) {
-            return ResponseEntity.status(500).body("Lỗi upload ảnh");
+        // Lấy tên Hãng và Danh mục an toàn
+        if (product.getBrand() != null) {
+            dto.setBrandName(product.getBrand().getName());
         }
+        if (product.getCategory() != null) {
+            dto.setCategoryName(product.getCategory().getName());
+        }
+
+        // Xử lý danh sách ảnh
+        if (product.getImages() != null && !product.getImages().isEmpty()) {
+            // Lấy list URL
+            List<String> imageUrls = product.getImages().stream()
+                    .map(ProductImage::getImageUrl)
+                    .collect(Collectors.toList());
+            dto.setImages(imageUrls);
+
+            // Lấy ảnh thumbnail (cái nào isThumbnail=true thì lấy, ko thì lấy cái đầu)
+            String thumb = product.getImages().stream()
+                    .filter(ProductImage::getIsThumbnail)
+                    .map(ProductImage::getImageUrl)
+                    .findFirst()
+                    .orElse(imageUrls.get(0));
+            dto.setThumbnail(thumb);
+        }
+
+        return dto;
+    }
+
+    // ... (Các API getBrands, getCategories giữ nguyên)
+    @GetMapping("/brands")
+    public ResponseEntity<List<Brand>> getBrands() {
+        return ResponseEntity.ok(brandService.getAllBrands());
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<List<Category>> getCategories() {
+        return ResponseEntity.ok(categoryService.getAllCategories());
     }
 }

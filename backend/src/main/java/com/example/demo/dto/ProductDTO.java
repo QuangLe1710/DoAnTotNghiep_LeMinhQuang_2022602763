@@ -1,40 +1,18 @@
-package com.example.demo.entity;
-
-import jakarta.persistence.*;
+package com.example.demo.dto;
 import lombok.Data;
-import java.util.Date;
+import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
-@Entity
-@Table(name = "products")
 @Data
-public class Product {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
-    @Column(nullable = false)
+public class ProductDTO {
     private String name;
-
-    private String slug;
     private Double price;
     private Double salePrice;
-
-    @Column(name = "stock_quantity")
     private Integer stockQuantity;
-
-    @Column(name = "warranty_period")
     private Integer warrantyPeriod;
-
-    @Lob
     private String description;
 
-    @Column(name = "short_description")
-    private String shortDescription;
-
-    @Column(name = "view_count")
-    private Integer viewCount = 0;
-
+    // Cấu hình
     private String cpu;
     private String ram;
     private String storage;
@@ -43,28 +21,12 @@ public class Product {
     private String battery;
     private Float weight;
 
-    @Column(name = "created_at")
-    private Date createdAt = new Date();
+    // ID của bảng cha (Dropdown chọn)
+    private Long brandId;
+    private Long categoryId;
 
-    // Mối quan hệ
-    @ManyToOne
-    @JoinColumn(name = "category_id")
-    private Category category;
-
-    @ManyToOne
-    @JoinColumn(name = "brand_id")
-    private Brand brand;
-
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<ProductImage> images;
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // Danh sách ảnh upload lên (Frontend gửi file)
+    private List<MultipartFile> files;
 
     public String getName() {
         return name;
@@ -72,14 +34,6 @@ public class Product {
 
     public void setName(String name) {
         this.name = name;
-    }
-
-    public String getSlug() {
-        return slug;
-    }
-
-    public void setSlug(String slug) {
-        this.slug = slug;
     }
 
     public Double getPrice() {
@@ -120,22 +74,6 @@ public class Product {
 
     public void setDescription(String description) {
         this.description = description;
-    }
-
-    public String getShortDescription() {
-        return shortDescription;
-    }
-
-    public void setShortDescription(String shortDescription) {
-        this.shortDescription = shortDescription;
-    }
-
-    public Integer getViewCount() {
-        return viewCount;
-    }
-
-    public void setViewCount(Integer viewCount) {
-        this.viewCount = viewCount;
     }
 
     public String getCpu() {
@@ -194,35 +132,27 @@ public class Product {
         this.weight = weight;
     }
 
-    public Date getCreatedAt() {
-        return createdAt;
+    public Long getBrandId() {
+        return brandId;
     }
 
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
+    public void setBrandId(Long brandId) {
+        this.brandId = brandId;
     }
 
-    public Category getCategory() {
-        return category;
+    public Long getCategoryId() {
+        return categoryId;
     }
 
-    public void setCategory(Category category) {
-        this.category = category;
+    public void setCategoryId(Long categoryId) {
+        this.categoryId = categoryId;
     }
 
-    public Brand getBrand() {
-        return brand;
+    public List<MultipartFile> getFiles() {
+        return files;
     }
 
-    public void setBrand(Brand brand) {
-        this.brand = brand;
-    }
-
-    public List<ProductImage> getImages() {
-        return images;
-    }
-
-    public void setImages(List<ProductImage> images) {
-        this.images = images;
+    public void setFiles(List<MultipartFile> files) {
+        this.files = files;
     }
 }

@@ -16,13 +16,27 @@ import PaymentSuccess from './pages/PaymentSuccess';
 
 const PrivateRoute = ({ children }) => {
     const token = localStorage.getItem('token');
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
-    if (!token || !user) return <Navigate to="/login" />;
-    if (user.role !== 'ADMIN') {
+    
+    // Lấy roles từ localStorage (dạng chuỗi JSON)
+    const rolesString = localStorage.getItem('roles');
+    let roles = [];
+    
+    try {
+        roles = rolesString ? JSON.parse(rolesString) : [];
+    } catch (e) {
+        roles = [];
+    }
+
+    // 1. Nếu chưa đăng nhập (không có token) -> Về Login
+    if (!token) return <Navigate to="/login" />;
+
+    // 2. Nếu đã đăng nhập nhưng không có quyền ADMIN -> Về Trang chủ
+    if (!roles.includes("ROLE_ADMIN")) {
         alert("Bạn không có quyền truy cập trang Admin!");
         return <Navigate to="/" />;
     }
+
+    // 3. Đủ điều kiện -> Cho vào
     return children;
 };
 
@@ -30,22 +44,23 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* --- KHU VỰC KHÁCH HÀNG --- */}
+        {/* ... (Các route khách hàng giữ nguyên) ... */}
         <Route path="/" element={<ClientLayout />}>
             <Route index element={<Home />} />
             <Route path="product/:id" element={<ProductDetail />} />
-            <Route path="cart" element={<Cart />} /> {/* <--- 2. THÊM DÒNG NÀY */}
+            <Route path="cart" element={<Cart />} /> 
             <Route path="checkout" element={<Checkout />} />
             <Route path="history" element={<OrderHistory />} />
         </Route>
 
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="payment-success" element={<PaymentSuccess />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} /> {/* Sửa lại path có dấu / */}
 
         {/* --- KHU VỰC ADMIN --- */}
         <Route path="/admin" element={<PrivateRoute><AdminLayout /></PrivateRoute>}>
-            <Route index element={<Navigate to="dashboard" />} />
+            {/* Nếu vào /admin mà không gõ gì thêm -> tự chuyển vào dashboard */}
+            <Route index element={<Navigate to="dashboard" replace />} /> 
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="products" element={<AdminProduct />} />
             <Route path="orders" element={<AdminOrder />} />

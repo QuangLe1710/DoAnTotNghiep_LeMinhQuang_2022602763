@@ -1,4 +1,4 @@
-package com.example.demo.service; // Đổi package nếu bạn để chỗ khác
+package com.example.demo.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
@@ -14,33 +14,30 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    // Constructor này sẽ tự động đọc 3 thông số bạn đã cài trong application.properties
+    // Constructor tự động đọc config từ application.properties
     public CloudinaryService(@Value("${cloudinary.cloud-name}") String cloudName,
                              @Value("${cloudinary.api-key}") String apiKey,
                              @Value("${cloudinary.api-secret}") String apiSecret) {
-
-        // Khởi tạo đối tượng Cloudinary
         this.cloudinary = new Cloudinary(ObjectUtils.asMap(
                 "cloud_name", cloudName,
                 "api_key", apiKey,
                 "api_secret", apiSecret,
-                "secure", true // Bắt buộc trả về link HTTPS (Bảo mật)
+                "secure", true
         ));
     }
 
-    // Hàm upload ảnh duy nhất bạn cần dùng
+    // --- HÀM 1: Trả về Map (Dùng cho ProductService hiện tại) ---
+    // Hàm này trả về toàn bộ thông tin ảnh (url, public_id, format...) dưới dạng Map
+    public Map uploadFile(MultipartFile file) throws IOException {
+        return cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
+    }
+
+    // --- HÀM 2: Trả về String (Dùng cho các trường hợp đơn giản khác nếu cần) ---
     public String uploadImage(MultipartFile file) throws IOException {
-        // 1. Kiểm tra file có rỗng không
         if (file.isEmpty()) {
             return null;
         }
-
-        // 2. Upload file lên Cloudinary
-        // ObjectUtils.emptyMap(): Tham số tùy chọn (ví dụ resize, crop...), tạm để trống
         Map uploadResult = cloudinary.uploader().upload(file.getBytes(), ObjectUtils.emptyMap());
-
-        // 3. Lấy về đường dẫn ảnh (URL)
-        // "secure_url" là key chứa link https của ảnh
         return uploadResult.get("secure_url").toString();
     }
 }

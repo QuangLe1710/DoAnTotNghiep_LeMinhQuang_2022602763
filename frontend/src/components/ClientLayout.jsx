@@ -15,8 +15,48 @@ const ClientLayout = () => {
     const { cartItems } = useCart(); // <--- 2. LẤY CART ITEMS TỪ CONTEXT
     const { openCompareModal, compareList } = useCompare(); // Lấy hàm mở modal
     
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
+    // --- SỬA ĐOẠN NÀY ---
+    const [user, setUser] = React.useState(() => {
+        const userString = localStorage.getItem('user'); // Hoặc lấy 'username' nếu bạn lưu riêng lẻ
+        // Vì Login.jsx lưu lẻ từng món: username, fullName... nên ta tạo object user giả lập
+        const username = localStorage.getItem('username');
+        const fullName = localStorage.getItem('fullName');
+        const roles = localStorage.getItem('roles');
+        
+        if (username) {
+            return { 
+                username, 
+                fullName, 
+                role: roles && roles.includes('ROLE_ADMIN') ? 'ADMIN' : 'USER' // Map lại role cho khớp logic cũ
+            };
+        }
+        return null;
+    });
+
+    // Lắng nghe sự kiện storage (khi login ở tab khác hoặc reload)
+    React.useEffect(() => {
+        const handleStorageChange = () => {
+            const username = localStorage.getItem('username');
+            if (username) {
+                setUser({
+                    username,
+                    fullName: localStorage.getItem('fullName'),
+                    role: localStorage.getItem('roles')?.includes('ROLE_ADMIN') ? 'ADMIN' : 'USER'
+                });
+            } else {
+                setUser(null);
+            }
+        };
+
+        window.addEventListener('storage', handleStorageChange); // Lắng nghe đa tab
+        // Mẹo: Lắng nghe thêm event custom để cập nhật ngay trên cùng 1 tab
+        window.addEventListener('auth-change', handleStorageChange);
+
+        return () => {
+            window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('auth-change', handleStorageChange);
+        };
+    }, []);
 
     const handleLogout = () => {
         localStorage.removeItem('token');

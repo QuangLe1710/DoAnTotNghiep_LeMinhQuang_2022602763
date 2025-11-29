@@ -53,19 +53,20 @@ const Home = () => {
     useEffect(() => {
         let temp = [...products];
 
-        // Bước 1: Lọc theo từ khóa tìm kiếm (nếu có)
+        // Bước 1: Lọc theo từ khóa tìm kiếm
         if (searchTerm) {
             const lowerTerm = searchTerm.toLowerCase();
             temp = temp.filter(p => 
                 p.name.toLowerCase().includes(lowerTerm) || 
-                p.brand.toLowerCase().includes(lowerTerm) ||
+                (p.brandName && p.brandName.toLowerCase().includes(lowerTerm)) || // Sửa p.brand thành p.brandName
                 (p.description && p.description.toLowerCase().includes(lowerTerm))
             );
         }
 
-        // Bước 2: Lọc theo Hãng (nếu có tích chọn)
+        // Bước 2: Lọc theo Hãng
         if (selectedBrands.length > 0) {
-            temp = temp.filter(p => selectedBrands.includes(p.brand));
+            // Sửa p.brand thành p.brandName
+            temp = temp.filter(p => selectedBrands.includes(p.brandName)); 
         }
 
         // Bước 3: Lọc theo Giá tiền
@@ -182,9 +183,11 @@ const Home = () => {
                                                 <div style={{ position: 'relative', height: 180, padding: 10, textAlign: 'center', backgroundColor: '#fff' }}>
                                                     <img 
                                                         alt={product.name} 
-                                                        src={product.image} 
+                                                        // Ưu tiên lấy thumbnail, nếu ko có thì lấy ảnh đầu tiên trong mảng images, nếu ko có nữa thì fallback ảnh rỗng
+                                                        src={product.thumbnail || (product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/300x200?text=No+Image')} 
                                                         style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain', transition: 'transform 0.3s' }} 
                                                         onClick={() => navigate(`/product/${product.id}`)}
+                                                        onError={(e) => { e.target.src = 'https://via.placeholder.com/300x200?text=Image+Error'; }} // Xử lý nếu link ảnh chết
                                                     />
                                                     <Tag color="#f50" style={{ position: 'absolute', top: 10, right: 10, borderRadius: 4 }}>HOT</Tag>
                                                 </div>
@@ -221,7 +224,7 @@ const Home = () => {
                                                             {product.price?.toLocaleString()} đ
                                                         </div>
                                                         <div style={{ fontSize: 11, color: '#888', marginBottom: 5, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                                            <Tag style={{marginRight:0}}>{product.brand}</Tag>
+                                                            <Tag style={{marginRight:0}}>{product.brandName}</Tag>
                                                             <Tag style={{marginRight:0}}>{product.cpu}</Tag>
                                                         </div>
                                                         <Rate disabled defaultValue={5} style={{ fontSize: 10 }} />

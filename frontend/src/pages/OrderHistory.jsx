@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Tag, message, Typography, Card, Button, Modal, Input, Select } from 'antd'; // 1. Import thêm Button, Modal
-import { StopOutlined } from '@ant-design/icons'; // Import icon
+import { Table, Tag, message, Typography, Card, Button, Modal, Input, Select } from 'antd';
+import { StopOutlined } from '@ant-design/icons';
 import api from '../services/api';
 import { useNavigate } from 'react-router-dom';
 
 const { Title } = Typography;
 const { TextArea } = Input;
-const { Option } = Select; // <--- Lấy Option từ Select
+const { Option } = Select;
 
-// 2. DANH SÁCH LÝ DO HỦY PHỔ BIẾN
 const CANCELLATION_REASONS = [
     "Tôi muốn thay đổi địa chỉ nhận hàng",
     "Tôi muốn thay đổi sản phẩm trong đơn (màu sắc, kích thước...)",
@@ -23,21 +22,20 @@ const OrderHistory = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    // --- STATE MODAL ---
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [cancellingOrderId, setCancellingOrderId] = useState(null);
-    
-    const [selectedReason, setSelectedReason] = useState(null); // Lưu giá trị Select
-    const [otherReason, setOtherReason] = useState(''); // Lưu giá trị nhập tay (TextArea)
+    const [selectedReason, setSelectedReason] = useState(null);
+    const [otherReason, setOtherReason] = useState('');
 
-    const userString = localStorage.getItem('user');
-    const user = userString ? JSON.parse(userString) : null;
+    // --- SỬA LOGIC LẤY USER Ở ĐÂY ---
+    const username = localStorage.getItem('username'); 
 
     const fetchMyOrders = async () => {
-        if (!user) return;
+        if (!username) return;
         setLoading(true);
         try {
-            const response = await api.get(`/orders/my-orders/${user.username}`);
+            // Gọi API bằng username lấy được
+            const response = await api.get(`/orders/my-orders/${username}`);
             setOrders(response.data);
         } catch (error) {
             message.error("Không thể tải lịch sử đơn hàng");
@@ -47,40 +45,34 @@ const OrderHistory = () => {
     };
 
     useEffect(() => {
-        if (!user) { navigate('/login'); return; }
+        // Kiểm tra username thay vì object user
+        if (!username) { navigate('/login'); return; }
         fetchMyOrders();
     }, [navigate]);
 
-    // --- LOGIC MỞ MODAL ---
     const openCancelModal = (orderId) => {
         setCancellingOrderId(orderId);
-        setSelectedReason(null); // Reset Select
-        setOtherReason('');      // Reset TextArea
+        setSelectedReason(null);
+        setOtherReason('');
         setIsModalOpen(true);
     };
 
-    // --- LOGIC GỬI YÊU CẦU HỦY ---
     const handleSubmitCancel = async () => {
-        // 1. Validate: Phải chọn lý do
         if (!selectedReason) {
             message.warning("Vui lòng chọn lý do hủy đơn!");
             return;
         }
 
-        // 2. Xác định lý do cuối cùng gửi đi
         let finalReason = selectedReason;
-        
-        // Nếu chọn "Khác" thì bắt buộc phải nhập text
         if (selectedReason === "Khác (Nhập lý do cụ thể...)") {
             if (!otherReason.trim()) {
                 message.warning("Vui lòng nhập chi tiết lý do!");
                 return;
             }
-            finalReason = otherReason; // Lấy nội dung nhập tay
+            finalReason = otherReason;
         }
 
         try {
-            // 3. Gửi API
             await api.put(`/orders/${cancellingOrderId}/cancel`, { reason: finalReason });
             message.success("Đã hủy đơn hàng!");
             setIsModalOpen(false);
@@ -125,7 +117,6 @@ const OrderHistory = () => {
                 <Table dataSource={orders} columns={columns} rowKey="id" loading={loading} pagination={{ pageSize: 5 }} />
             </Card>
 
-            {/* --- MODAL HỦY ĐƠN NÂNG CẤP --- */}
             <Modal
                 title="Xác nhận hủy đơn hàng"
                 open={isModalOpen}
@@ -136,8 +127,6 @@ const OrderHistory = () => {
                 cancelText="Đóng"
             >
                 <p style={{ marginBottom: 10 }}>Chúng tôi rất tiếc khi bạn muốn hủy đơn. Vui lòng cho biết lý do:</p>
-                
-                {/* 1. DROPDOWN CHỌN LÝ DO */}
                 <Select
                     style={{ width: '100%', marginBottom: 15 }}
                     placeholder="-- Chọn lý do hủy --"
@@ -148,8 +137,6 @@ const OrderHistory = () => {
                         <Option key={reason} value={reason}>{reason}</Option>
                     ))}
                 </Select>
-
-                {/* 2. TEXTAREA (Chỉ hiện khi chọn 'Khác') */}
                 {selectedReason === "Khác (Nhập lý do cụ thể...)" && (
                     <TextArea 
                         rows={3} 

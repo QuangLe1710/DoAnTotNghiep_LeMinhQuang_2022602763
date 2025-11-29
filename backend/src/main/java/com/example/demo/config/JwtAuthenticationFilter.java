@@ -6,6 +6,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,7 +15,8 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -23,39 +25,45 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtils jwtUtils;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
+    ) throws ServletException, IOException {
 
-        // 1. Lấy token từ Header "Authorization"
-        String authHeader = request.getHeader("Authorization");
-        String token = null;
-        String username = null;
-        String role = null;
+        final String authHeader = request.getHeader("Authorization");
+        final String jwt;
+        final String username;
 
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7); // Cắt bỏ chữ "Bearer "
-            if (jwtUtils.validateToken(token)) {
-                username = jwtUtils.extractUsername(token);
-                role = jwtUtils.extractRole(token);
+        // 1. Kiểm tra Header có token không
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        jwt = authHeader.substring(7); // Bỏ chữ "Bearer "
+
+        // 2. Validate token và lấy thông tin
+        if (jwtUtils.validateToken(jwt)) {
+            username = jwtUtils.extractUsername(jwt);
+            List<String> roles = jwtUtils.extractRoles(jwt); // Lấy list roles
+
+            // 3. Nếu chưa xác thực thì set quyền
+            if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+                // Convert List<String> thành List<SimpleGrantedAuthority>
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
+
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        username, null, authorities);
+
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(authToken);
             }
         }
 
-        // 2. Nếu Token hợp lệ và chưa xác thực -> Set quyền cho User
-        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // Tạo đối tượng User ảo trong Spring Security
-            // Lưu ý: role trong DB là "ADMIN" thì Spring cần quyền là "ADMIN" (hoặc ROLE_ADMIN tùy cấu hình)
-            SimpleGrantedAuthority authority = new SimpleGrantedAuthority(role);
-
-            UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                    username, null, Collections.singletonList(authority));
-
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-            // "Đóng dấu" là user này đã đăng nhập
-            SecurityContextHolder.getContext().setAuthentication(authToken);
-        }
-
-        // 3. Cho phép request đi tiếp
         filterChain.doFilter(request, response);
     }
 }
