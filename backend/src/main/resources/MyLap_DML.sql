@@ -1,4 +1,16 @@
-USE defaultdb; -- Hoặc tên DB của bạn
+-- {
+-- --     "username": "admin_vip",
+-- --     "password": "password123"
+-- -- }
+
+-- {
+--     "username": "userquang123",
+--     "password": "Quang2004@"
+-- }
+
+
+USE
+defaultdb; -- Hoặc tên DB của bạn
 
 -- Thêm Hãng sản xuất
 INSERT INTO brands (name, origin) VALUES
