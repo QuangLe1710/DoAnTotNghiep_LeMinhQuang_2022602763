@@ -193,4 +193,16 @@ public class ProductService {
         slug += "-" + System.currentTimeMillis();
         return slug;
     }
+
+    // 6. LẤY SẢN PHẨM LIÊN QUAN
+    public List<Product> getRelatedProducts(Long currentProductId) {
+        Product currentProduct = getProductById(currentProductId);
+        if (currentProduct.getCategory() == null) {
+            return new ArrayList<>();
+        }
+        return productRepository.findTop4ByCategoryIdAndIdNot(
+                currentProduct.getCategory().getId(),
+                currentProductId
+        );
+    }
 }

@@ -15,6 +15,7 @@ const ProductDetail = () => {
     const [product, setProduct] = useState(null);
     const [loading, setLoading] = useState(true);
     const [mainImage, setMainImage] = useState(''); // State lưu ảnh đang hiển thị to
+    const [relatedProducts, setRelatedProducts] = useState([]);
 
     useEffect(() => {
         const fetchProduct = async () => {
@@ -31,6 +32,12 @@ const ProductDetail = () => {
             } finally {
                 setLoading(false);
             }
+
+            // --- GỌI THÊM API LIÊN QUAN ---
+            try {
+                const relatedRes = await api.get(`/products/${id}/related`);
+                setRelatedProducts(relatedRes.data);
+            } catch (e) { console.error("Lỗi tải sản phẩm liên quan"); }
         };
         fetchProduct();
     }, [id, navigate]);
@@ -163,6 +170,42 @@ const ProductDetail = () => {
                     </div>
                 </Col>
             </Row>
+
+            <Divider style={{ margin: '40px 0' }} />
+
+            {/* --- KHỐI SẢN PHẨM LIÊN QUAN --- */}
+            {relatedProducts.length > 0 && (
+                <div>
+                    <Title level={3} style={{ marginBottom: 20 }}>Có thể bạn cũng thích</Title>
+                    <Row gutter={[16, 16]}>
+                        {relatedProducts.map((p) => (
+                            <Col xs={24} sm={12} md={6} key={p.id}>
+                                <Card
+                                    hoverable
+                                    cover={
+                                        <div style={{ padding: 10, textAlign: 'center' }}>
+                                            <img 
+                                                alt={p.name} 
+                                                src={p.thumbnail || (p.images && p.images[0])} 
+                                                style={{ height: 150, objectFit: 'contain' }} 
+                                            />
+                                        </div>
+                                    }
+                                    onClick={() => {
+                                        navigate(`/product/${p.id}`);
+                                        window.scrollTo(0, 0); // Cuộn lên đầu khi chuyển trang
+                                    }}
+                                >
+                                    <Card.Meta 
+                                        title={p.name} 
+                                        description={<span style={{ color: '#cf1322', fontWeight: 'bold' }}>{p.price?.toLocaleString()} đ</span>} 
+                                    />
+                                </Card>
+                            </Col>
+                        ))}
+                    </Row>
+                </div>
+            )}
         </div>
     );
 };

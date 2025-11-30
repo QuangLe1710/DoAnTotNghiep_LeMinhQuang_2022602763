@@ -13,4 +13,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 2. Các hàm cũ (giữ nguyên nếu cần dùng chỗ khác)
     List<Product> findByBrandId(Long brandId);
     List<Product> findByCategoryId(Long categoryId);
+
+    // Tìm Top 4 sản phẩm cùng danh mục, trừ sản phẩm hiện tại (để làm mục "Có thể bạn thích")
+    List<Product> findTop4ByCategoryIdAndIdNot(Long categoryId, Long productId);
 }

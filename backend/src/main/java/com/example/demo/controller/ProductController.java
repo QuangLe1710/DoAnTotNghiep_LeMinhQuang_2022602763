@@ -188,4 +188,17 @@ public class ProductController {
     public ResponseEntity<List<Category>> getCategories() {
         return ResponseEntity.ok(categoryService.getAllCategories());
     }
+
+    // 6. Lấy sản phẩm liên quan
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<ProductResponseDTO>> getRelatedProducts(@PathVariable Long id) {
+        List<Product> relatedProducts = productService.getRelatedProducts(id);
+
+        // Convert sang DTO để trả về JSON đẹp (có ảnh, hãng...)
+        List<ProductResponseDTO> dtos = relatedProducts.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(dtos);
+    }
 }

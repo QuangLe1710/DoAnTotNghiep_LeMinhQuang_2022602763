@@ -6,6 +6,7 @@ import { useNavigate, Outlet, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCompare } from '../context/CompareContext';
 import CompareModal from './CompareModal';
+import ChatWidget from './ChatWidget';
 
 const { Header, Content, Footer } = Layout;
 const { Search } = Input;
@@ -200,6 +201,10 @@ const ClientLayout = () => {
                 />
                 <FloatButton.BackTop visibilityHeight={0} icon={<VerticalAlignTopOutlined />} />
             </FloatButton.Group>
+
+            {/* --- THÊM WIDGET CHAT VÀO ĐÂY --- */}
+            <ChatWidget />
+
         </Layout>
     );
 };

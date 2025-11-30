@@ -25,6 +25,8 @@ public class Address {
     private String city;
     private Boolean isDefault = false;
 
+
+
     public Long getId() {
         return id;
     }
@@ -79,5 +81,13 @@ public class Address {
 
     public void setDefault(Boolean aDefault) {
         isDefault = aDefault;
+    }
+
+    public void setIsDefault(Boolean aDefault){
+        this.isDefault = aDefault;
+    }
+
+    public Boolean getIsDefault() {
+        return isDefault;
     }
 }
