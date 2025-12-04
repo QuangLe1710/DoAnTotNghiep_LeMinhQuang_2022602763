@@ -23,7 +23,7 @@ import java.util.Map;
 public class OrderController {
 
     @Autowired
-    private OrderService orderService; // Dùng final để Lombok tự inject (bỏ @Autowired)
+    private OrderService orderService;
 
     // Helper lấy username từ Token
     private String getCurrentUsername() {

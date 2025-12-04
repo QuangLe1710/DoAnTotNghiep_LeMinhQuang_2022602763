@@ -30,7 +30,7 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
-    // 1. ĐĂNG KÝ (Giữ nguyên)
+    // 1. ĐĂNG KÝ
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody User user) {
         if (userRepository.existsByUsername(user.getUsername())) {
@@ -66,7 +66,7 @@ public class AuthController {
         return ResponseEntity.ok("Đăng ký thành công!");
     }
 
-    // 2. ĐĂNG NHẬP (CẬP NHẬT LOGIC CHẶN KHÓA)
+    // 2. ĐĂNG NHẬP
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> loginData) {
         User user = userRepository.findByUsername(loginData.get("username")).orElse(null);

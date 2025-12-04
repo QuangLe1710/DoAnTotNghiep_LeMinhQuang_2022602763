@@ -115,13 +115,14 @@ public class ProductService {
         return savedProduct;
     }
 
-    // 4. CẬP NHẬT SẢN PHẨM
+    // 4. CẬP NHẬT SẢN PHẨM (ĐÃ FIX LỖI ORPHAN REMOVAL)
     @Transactional
     public Product updateProduct(Long id, ProductDTO dto) throws IOException {
         Product existingProduct = getProductById(id);
 
+        // Update thông tin cơ bản
         existingProduct.setName(dto.getName());
-        existingProduct.setSlug(createSlug(dto.getName())); // Cập nhật slug mới
+        // existingProduct.setSlug(...) // Nếu muốn update slug
         existingProduct.setPrice(dto.getPrice());
         existingProduct.setSalePrice(dto.getSalePrice());
         existingProduct.setStockQuantity(dto.getStockQuantity());
@@ -136,6 +137,7 @@ public class ProductService {
         existingProduct.setBattery(dto.getBattery());
         existingProduct.setWeight(dto.getWeight());
 
+        // Update Brand/Category
         Brand brand = brandRepository.findById(dto.getBrandId())
                 .orElseThrow(() -> new RuntimeException("Brand not found"));
         Category category = categoryRepository.findById(dto.getCategoryId())
@@ -144,26 +146,27 @@ public class ProductService {
         existingProduct.setBrand(brand);
         existingProduct.setCategory(category);
 
-        // Nếu có ảnh mới -> Xóa cũ, thêm mới
+        // --- SỬA ĐOẠN XỬ LÝ ẢNH TẠI ĐÂY ---
         if (dto.getFiles() != null && !dto.getFiles().isEmpty()) {
-            productImageRepository.deleteByProductId(id); // Xóa ảnh cũ
+            // 1. Xóa sạch ảnh cũ trong danh sách hiện tại (Hibernate sẽ tự delete trong DB)
+            existingProduct.getImages().clear();
 
-            List<ProductImage> newImages = new ArrayList<>();
+            // 2. Thêm ảnh mới vào danh sách đó
             for (int i = 0; i < dto.getFiles().size(); i++) {
                 MultipartFile file = dto.getFiles().get(i);
                 Map uploadResult = cloudinaryService.uploadFile(file);
                 String imageUrl = (String) uploadResult.get("url");
 
                 ProductImage image = new ProductImage();
-                image.setProduct(existingProduct);
+                image.setProduct(existingProduct); // Quan trọng: Phải gán ngược lại product
                 image.setImageUrl(imageUrl);
                 image.setIsThumbnail(i == 0);
 
-                productImageRepository.save(image);
-                newImages.add(image);
+                // Thêm vào list quản lý của Hibernate
+                existingProduct.getImages().add(image);
             }
-            existingProduct.setImages(newImages);
         }
+        // -----------------------------------
 
         return productRepository.save(existingProduct);
     }

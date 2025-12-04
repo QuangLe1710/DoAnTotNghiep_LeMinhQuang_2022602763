@@ -128,7 +128,7 @@ public class ProductController {
         }
     }
 
-    // --- HÀM CHUYỂN ĐỔI ENTITY -> DTO (PHIÊN BẢN ĐẦY ĐỦ) ---
+    // --- HÀM CHUYỂN ĐỔI ENTITY -> DTO ---
     private ProductResponseDTO convertToDTO(Product product) {
         ProductResponseDTO dto = new ProductResponseDTO();
         dto.setId(product.getId());
@@ -178,7 +178,7 @@ public class ProductController {
         return dto;
     }
 
-    // ... (Các API getBrands, getCategories giữ nguyên)
+    // API getBrands, getCategories
     @GetMapping("/brands")
     public ResponseEntity<List<Brand>> getBrands() {
         return ResponseEntity.ok(brandService.getAllBrands());

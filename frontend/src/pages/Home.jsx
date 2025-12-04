@@ -93,30 +93,72 @@ const Home = () => {
 
     }, [selectedBrands, selectedCategories, priceRange, products, searchTerm]);
 
-    // Banner data (Giữ nguyên)
+    // --- DỮ LIỆU BANNER (ĐÃ CẬP NHẬT ẢNH) ---
     const banners = [
-        { id: 1, title: "SIÊU SALE MÙA TỰU TRƯỜNG", desc: "Giảm giá 30% - Tặng Balo & Chuột", color: 'linear-gradient(90deg, #1890ff 0%, #0050b3 100%)' },
-        { id: 2, title: "MACBOOK AIR M2 - ĐỈNH CAO", desc: "Sở hữu siêu phẩm Apple chỉ từ 26 triệu", color: 'linear-gradient(90deg, #ff4d4f 0%, #cf1322 100%)' },
-        { id: 3, title: "GAMING LAPTOP - CHIẾN GAME", desc: "Cấu hình khủng - Màn hình 144Hz", color: 'linear-gradient(90deg, #52c41a 0%, #237804 100%)' }
+        { 
+            id: 1, 
+            title: "SIÊU SALE MÙA TỰU TRƯỜNG", 
+            desc: "Giảm giá 30% - Tặng Balo & Chuột", 
+            // Ảnh: Laptop & Bàn làm việc
+            image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?q=80&w=2072&auto=format&fit=crop' 
+        },
+        { 
+            id: 2, 
+            title: "MACBOOK AIR M2 - ĐỈNH CAO", 
+            desc: "Sở hữu siêu phẩm Apple chỉ từ 26 triệu", 
+            // Ảnh: Macbook sang trọng
+            image: 'https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=2070&auto=format&fit=crop' 
+        },
+        { 
+            id: 3, 
+            title: "GAMING LAPTOP - CHIẾN GAME", 
+            desc: "Cấu hình khủng - Màn hình 144Hz", 
+            // Ảnh: Gaming setup ngầu
+            image: 'https://images.unsplash.com/photo-1593640408182-31c70c8268f5?q=80&w=2070&auto=format&fit=crop' 
+        }
     ];
     
-    const contentStyle = { height: '300px', color: '#fff', lineHeight: '160px', textAlign: 'center', borderRadius: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 20px' };
+    // Style cho nội dung banner (Thêm background image và lớp phủ đen mờ)
+    const contentStyle = (image) => ({
+        height: '300px',
+        color: '#fff',
+        textAlign: 'center',
+        borderRadius: '8px',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: '0 20px',
+        // Cấu hình ảnh nền
+        backgroundImage: `linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(${image})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+    });
+
     const arrowStyle = { position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 2, background: 'rgba(0,0,0,0.3)', border: 'none', color: 'white', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', transition: 'background 0.3s' };
 
     return (
         <div>
-            {/* Banner Slider */}
+            {/* --- BANNER SLIDER --- */}
             {!searchTerm && (
                 <div style={{ position: 'relative', marginBottom: 40, borderRadius: 8, overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                     <Button shape="circle" icon={<LeftOutlined />} style={{ ...arrowStyle, left: '10px' }} onClick={() => carouselRef.current.prev()} />
                     <Button shape="circle" icon={<RightOutlined />} style={{ ...arrowStyle, right: '10px' }} onClick={() => carouselRef.current.next()} />
+                    
                     <Carousel ref={carouselRef} autoplay autoplaySpeed={5000} effect="fade">
                         {banners.map(item => (
                             <div key={item.id}>
-                                <div style={{ ...contentStyle, background: item.color }}>
-                                    <Title level={1} style={{ color: 'white', margin: 0, fontSize: '36px', textTransform: 'uppercase' }}>{item.title}</Title>
-                                    <Paragraph style={{ color: 'rgba(255,255,255,0.8)', fontSize: '18px', marginTop: 10 }}>{item.desc}</Paragraph>
-                                    <Button type="primary" size="large" ghost style={{ marginTop: 20, padding: '0 40px' }}>MUA NGAY</Button>
+                                {/* Gọi hàm contentStyle và truyền link ảnh vào */}
+                                <div style={contentStyle(item.image)}>
+                                    <Title level={1} style={{ color: 'white', margin: 0, fontSize: '36px', textTransform: 'uppercase', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                                        {item.title}
+                                    </Title>
+                                    <Paragraph style={{ color: 'rgba(255,255,255,0.9)', fontSize: '18px', marginTop: 10, textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                                        {item.desc}
+                                    </Paragraph>
+                                    <Button type="primary" size="large" style={{ marginTop: 20, padding: '0 40px', height: '50px', fontSize: '16px', fontWeight: 'bold' }}>
+                                        MUA NGAY
+                                    </Button>
                                 </div>
                             </div>
                         ))}
