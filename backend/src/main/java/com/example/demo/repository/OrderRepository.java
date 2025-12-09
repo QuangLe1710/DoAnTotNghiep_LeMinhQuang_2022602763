@@ -7,9 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
-    // --- SỬA LẠI TÊN HÀM NÀY ---
-    // Cũ: findByUsernameOrderByIdDesc (Sai vì Order không còn cột username)
-    // Mới: findByUser_UsernameOrderByIdDesc (Đúng: Tìm trong User lấy Username)
+    // findByUser_UsernameOrderByIdDesc (Tìm trong User lấy Username)
     List<Order> findByUser_UsernameOrderByIdDesc(String username);
 
     // 1. Tính tổng doanh thu (Chỉ tính đơn COMPLETED hoặc PAID)

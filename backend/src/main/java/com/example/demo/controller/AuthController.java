@@ -73,7 +73,7 @@ public class AuthController {
 
         if (user != null && passwordEncoder.matches(loginData.get("password"), user.getPassword())) {
 
-            // --- [LOGIC MỚI] KIỂM TRA TRẠNG THÁI ---
+            // --- KIỂM TRA TRẠNG THÁI ---
             if (Boolean.FALSE.equals(user.getStatus())) {
                 return ResponseEntity.status(403).body("Tài khoản của bạn đã bị khóa! Vui lòng liên hệ Admin.");
             }

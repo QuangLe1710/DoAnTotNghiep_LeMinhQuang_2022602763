@@ -37,7 +37,7 @@ public class GeminiService {
                         p.getName(), p.getPrice(),
                         p.getBrand() != null ? p.getBrand().getName() : "N/A",
                         p.getCpu(), p.getRam()))
-                .limit(30) // Giới hạn 30 sản phẩm để không quá tải token
+                .limit(40) // Giới hạn 40 sản phẩm để không quá tải token
                 .collect(Collectors.joining("\n"));
 
         // 2. Tạo Prompt (Kịch bản)

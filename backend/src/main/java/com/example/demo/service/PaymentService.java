@@ -18,7 +18,7 @@ public class PaymentService {
     private VNPayConfig vnPayConfig;
 
     public PaymentDTO.VNPayResponse createVnPayPayment(HttpServletRequest request) {
-        // Lấy số tiền từ request (đơn vị VNĐ) - Ví dụ frontend gửi lên 100000
+        // Lấy số tiền từ request (đơn vị VNĐ)
         // VNPay yêu cầu nhân 100 (đơn vị hào)
         long amount = Integer.parseInt(request.getParameter("amount")) * 100L;
         String bankCode = request.getParameter("bankCode");

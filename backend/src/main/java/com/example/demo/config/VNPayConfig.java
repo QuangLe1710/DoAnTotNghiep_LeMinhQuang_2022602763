@@ -11,7 +11,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 @Component
-@Getter // Lombok tự sinh Getter cho các biến @Value
+@Getter
 public class VNPayConfig {
     @Value("${vnpay.url}")
     private String vnp_PayUrl;
